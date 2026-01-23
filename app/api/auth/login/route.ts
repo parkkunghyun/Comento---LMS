@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findInstructor } from '@/lib/google-sheets';
+import { findInstructor, findInstructorByEmailAndPin } from '@/lib/google-sheets';
 import { verifyEMCredentials } from '@/lib/auth-em';
 import { createToken, setAuthToken } from '@/lib/auth';
 import { AuthUser } from '@/types/auth';
@@ -7,31 +7,37 @@ import { AuthUser } from '@/types/auth';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, role } = body;
-
-    // 입력 검증
-    if (!name || !email) {
-      return NextResponse.json(
-        { error: '이름과 이메일을 모두 입력해주세요.' },
-        { status: 400 }
-      );
-    }
+    const { name, email, pinCode, role } = body;
 
     let authUser: AuthUser | null = null;
 
     // 역할별 인증 처리
     if (role === 'EM') {
-      // EM 인증
-      if (verifyEMCredentials(name, email)) {
+      // EM 인증: 성함과 핀코드 필요
+      if (!name || !pinCode) {
+        return NextResponse.json(
+          { error: '성함과 핀코드를 모두 입력해주세요.' },
+          { status: 400 }
+        );
+      }
+
+      if (verifyEMCredentials(name, pinCode)) {
         authUser = {
           role: 'EM',
           name,
-          email,
+          email: 'comento@comento.co.kr', // EM은 이메일이 없으므로 기본값 사용
         };
       }
     } else {
-      // INSTRUCTOR 인증 (기본값)
-      const instructor = await findInstructor(name, email);
+      // INSTRUCTOR 인증: 이메일과 핀코드 필요
+      if (!email || !pinCode) {
+        return NextResponse.json(
+          { error: '이메일과 핀코드를 모두 입력해주세요.' },
+          { status: 400 }
+        );
+      }
+
+      const instructor = await findInstructorByEmailAndPin(email, pinCode);
       if (instructor) {
         authUser = {
           role: 'INSTRUCTOR',

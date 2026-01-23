@@ -27,7 +27,7 @@ export function getGoogleSheetsClient() {
 }
 
 /**
- * 강사 정보를 Google Spreadsheet에서 조회합니다.
+ * 강사 정보를 Google Spreadsheet에서 조회합니다 (이름과 이메일로).
  * @param name 강사 이름
  * @param email 강사 이메일
  * @returns 강사 정보 또는 null
@@ -74,6 +74,135 @@ export async function findInstructor(name: string, email: string) {
     return null;
   } catch (error) {
     console.error('Error fetching instructor data:', error);
+    throw error;
+  }
+}
+
+/**
+ * 강사 정보를 이메일과 핀코드로 조회합니다.
+ * @param email 강사 이메일 (H열)
+ * @param pinCode 핀코드 (V열, 인덱스 21)
+ * @returns 강사 정보 또는 null
+ */
+export async function findInstructorByEmailAndPin(email: string, pinCode: string): Promise<{
+  name: string;
+  email: string;
+  mobile: string;
+  fee: string;
+  rowIndex: number;
+} | null> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_LOGIN_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
+  const sheetName = '강사 현황';
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:Z`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return null;
+    }
+
+    // 헤더 행을 제외하고 데이터 행만 처리
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      
+      const instructorEmail = (row[7] || '').trim().toLowerCase(); // H열 - 이메일
+      const storedPinCode = (row[21] || '').trim(); // V열 - 핀코드
+
+      // 이메일과 핀코드가 모두 일치하는 경우
+      if (
+        instructorEmail === email.toLowerCase() &&
+        storedPinCode === pinCode
+      ) {
+        return {
+          name: (row[2] || '').trim(), // C열 - 강사이름
+          email: (row[7] || '').trim(), // H열 - 이메일
+          mobile: (row[6] || '').trim(), // G열 - 이동통신
+          fee: (row[8] || '').trim(), // I열 - 강사료
+          rowIndex: i + 1, // 1-based 행 번호
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching instructor by email and pin:', error);
+    throw error;
+  }
+}
+
+/**
+ * 이메일로 강사 정보를 조회합니다 (핀코드 수정용).
+ * @param email 강사 이메일 (H열)
+ * @returns 강사 정보 또는 null
+ */
+export async function findInstructorByEmail(email: string): Promise<{
+  name: string;
+  email: string;
+  rowIndex: number;
+} | null> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_LOGIN_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
+  const sheetName = '강사 현황';
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:Z`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return null;
+    }
+
+    // 헤더 행을 제외하고 데이터 행만 처리
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const instructorEmail = (row[7] || '').trim().toLowerCase(); // H열 - 이메일
+
+      if (instructorEmail === email.toLowerCase()) {
+        return {
+          name: (row[2] || '').trim(), // C열 - 강사이름
+          email: (row[7] || '').trim(), // H열 - 이메일
+          rowIndex: i + 1, // 1-based 행 번호
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching instructor by email:', error);
+    throw error;
+  }
+}
+
+/**
+ * 강사 핀코드를 업데이트합니다.
+ * @param rowIndex 시트의 행 번호 (1-based)
+ * @param pinCode 새로운 핀코드
+ */
+export async function updateInstructorPinCode(rowIndex: number, pinCode: string): Promise<void> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_LOGIN_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
+  const sheetName = '강사 현황';
+
+  try {
+    // V열은 인덱스 21 (A=0, B=1, ..., V=21)
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${sheetName}!V${rowIndex}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[pinCode]],
+      },
+    });
+  } catch (error) {
+    console.error('Error updating instructor pin code:', error);
     throw error;
   }
 }
@@ -203,7 +332,7 @@ export async function getAllInstructorNames(): Promise<string[]> {
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const instructorName = normalizeName(row[2] || ''); // C열 - 강사이름
-      
+
       if (instructorName) {
         instructorNames.add(instructorName);
       }
@@ -211,7 +340,7 @@ export async function getAllInstructorNames(): Promise<string[]> {
 
     return Array.from(instructorNames).sort();
   } catch (error) {
-    console.error('Error fetching all instructor names:', error);
+    console.error('Error fetching instructor names:', error);
     throw error;
   }
 }
@@ -286,12 +415,14 @@ function normalizeDate(dateString: string): string {
     const [, year, month, day] = match;
     // 2자리 연도를 4자리로 변환 (00-50은 2000년대, 51-99는 1900년대로 가정)
     const fullYear = parseInt(year) <= 50 ? `20${year.padStart(2, '0')}` : `19${year.padStart(2, '0')}`;
-    const normalizedMonth = month.padStart(2, '0');
-    const normalizedDay = day.padStart(2, '0');
-    return `${fullYear}-${normalizedMonth}-${normalizedDay}`;
+    return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
   
-  // 이미 YYYY-MM-DD 형식이거나 다른 형식인 경우 그대로 반환
+  // 이미 YYYY-MM-DD 형식인 경우 그대로 반환
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  
   return trimmed;
 }
 
@@ -411,11 +542,12 @@ export async function getInstructorSettlements(instructorName: string): Promise<
 
 /**
  * 강사 이름과 이메일을 함께 조회합니다.
+ * @param externalOnly 외부 강사만 조회할지 여부 (D열이 "내부"가 아닌 강사만)
  * @returns 강사 정보 목록 (이름, 이메일)
  */
-export async function getAllInstructorsWithEmail(): Promise<Array<{ name: string; email: string }>> {
+export async function getAllInstructorsWithEmail(externalOnly: boolean = false): Promise<Array<{ name: string; email: string }>> {
   const sheets = getGoogleSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
+  const spreadsheetId = process.env.GOOGLE_LOGIN_SPREADSHEET_ID || process.env.GOOGLE_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
   const sheetName = '강사 현황';
 
   try {
@@ -437,6 +569,12 @@ export async function getAllInstructorsWithEmail(): Promise<Array<{ name: string
       const row = rows[i];
       const instructorName = normalizeName(row[2] || ''); // C열 - 강사이름
       const instructorEmail = row[7]?.trim() || ''; // H열 - 이메일
+      const affiliation = (row[3] || '').trim(); // D열 - 소속
+
+      // externalOnly가 true인 경우 "내부"인 강사 제외
+      if (externalOnly && affiliation === '내부') {
+        continue;
+      }
 
       // 중복 제거 (이름 기준)
       if (instructorName && instructorEmail && !seen.has(instructorName)) {
@@ -547,25 +685,15 @@ export async function logRecruitment(
  * 섭외 로그 데이터 타입
  */
 export interface RecruitmentLogData {
-  requestId: string; // A열
-  educationName: string; // B열
-  educationDate: string; // C열
-  instructorName: string; // D열
-  result: 'APPROVED' | 'DECLINED' | 'CANCELLED'; // E열
-  declineReason?: string; // F열
-  responseDateTime?: string; // G열
-  eventId?: string; // H열
-  requestMonth: string; // I열 (YYYY-MM 형식)
-}
-
-/**
- * 거절 사유 정보
- */
-export interface DeclineReasonInfo {
-  educationName: string; // 교육명
-  educationDate: string; // 교육일자
-  declineReason: string; // 거절사유
-  requestMonth: string; // 요청월
+  requestId: string; // A열: 요청ID
+  educationName: string; // B열: 교육명
+  educationDate: string; // C열: 교육일자
+  instructorName: string; // D열: 강사명
+  result: 'APPROVED' | 'DECLINED' | 'CANCELLED' | 'REQUESTED'; // E열: 결과
+  declineReason?: string; // F열: 거절사유
+  responseDateTime?: string; // G열: 응답일시
+  eventId?: string; // H열: 이벤트ID
+  requestMonth: string; // I열: 요청월
 }
 
 /**
@@ -573,13 +701,13 @@ export interface DeclineReasonInfo {
  */
 export interface InstructorRecruitmentStats {
   instructorName: string;
-  totalRequests: number; // CANCELLED 제외
+  totalRequests: number;
   approvedCount: number;
   declinedCount: number;
-  approvalRate: number; // 수락율 (%)
-  declineRate: number; // 거절율 (%)
-  educationDates: string[]; // 교육일자 목록
-  declineReasons: DeclineReasonInfo[]; // 거절 사유 목록
+  approvalRate: number;
+  declineRate: number;
+  educationDates: string[];
+  declineReasons: DeclineReasonInfo[];
   monthlyStats: {
     [month: string]: {
       approved: number;
@@ -590,12 +718,22 @@ export interface InstructorRecruitmentStats {
 }
 
 /**
+ * 거절 사유 정보 타입
+ */
+export interface DeclineReasonInfo {
+  educationName: string;
+  educationDate: string;
+  declineReason: string;
+  requestMonth: string;
+}
+
+/**
  * 외부강사_섭외_로그 시트에서 모든 섭외 로그를 조회합니다.
  * @returns 섭외 로그 데이터 목록
  */
 export async function getAllRecruitmentLogs(): Promise<RecruitmentLogData[]> {
   const sheets = getGoogleSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_LOGIN_SPREADSHEET_ID || process.env.GOOGLE_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
+  const spreadsheetId = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || process.env.GOOGLE_LOGIN_SPREADSHEET_ID || process.env.GOOGLE_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
   const sheetName = '외부강사_섭외_로그';
 
   try {
@@ -626,14 +764,14 @@ export async function getAllRecruitmentLogs(): Promise<RecruitmentLogData[]> {
       const requestMonth = (row[8] || '').trim(); // I열: 요청월
 
       // 필수 필드가 있는 경우만 추가
-      if (requestId && instructorName && result) {
-        if (result === 'APPROVED' || result === 'DECLINED' || result === 'CANCELLED') {
+      if (requestId && educationName) {
+        if (result === 'APPROVED' || result === 'DECLINED' || result === 'CANCELLED' || result === 'REQUESTED') {
           logs.push({
             requestId,
             educationName,
             educationDate,
             instructorName: normalizeName(instructorName),
-            result: result as 'APPROVED' | 'DECLINED' | 'CANCELLED',
+            result: result as 'APPROVED' | 'DECLINED' | 'CANCELLED' | 'REQUESTED',
             declineReason: declineReason || undefined,
             responseDateTime: responseDateTime || undefined,
             eventId: eventId || undefined,
@@ -654,34 +792,25 @@ export async function getAllRecruitmentLogs(): Promise<RecruitmentLogData[]> {
  * 강사 상세 정보 타입 (강사 현황_v2 시트)
  */
 export interface InstructorDetail {
-  status: string; // A열: 강사 상태
-  name: string; // B열: 강사이름
-  affiliation: string; // C열: 소속
-  role: string; // D열: 직무
-  yearsOfExperience: string; // E열: 연차
-  monthlyAverageClasses: string; // F열: 월별 평균 출강수
-  level: string; // G열: 강사레벨
-  levelDescription: string; // H열: 강사레벨 Description
-  educationStrategy: string; // I열: 교육 주제 / 파견 전략
+  status: string; // A열: 상태
+  name: string; // B열: 이름
+  email: string; // C열: 이메일
+  mobile: string; // D열: 전화번호
+  affiliation: string; // E열: 소속
+  specialty: string; // F열: 전문분야
+  experience: string; // G열: 경력
+  fee: string; // H열: 강사료
+  availability: string; // I열: 가능일정
   notes: string; // J열: 특이사항
-  availableAreas: {
-    newDevelopment: boolean; // K열: 신규개발과정(주제미정)
-    leaderExecutive: boolean; // L열: 리더교육(임원)
-    leaderManager: boolean; // M열: 리더교육(팀장)
-    specialLecture: boolean; // N열: 특강(2H)
-    standardEducation: boolean; // O열: 표준교육
-    reportEducation: boolean; // P열: 보고서교육
-    handsOnSession: boolean; // Q열: 핸즈온 세션
-  };
 }
 
 /**
- * 강사 현황_v2 시트에서 모든 강사 상세 정보를 조회합니다.
+ * 강사 상세 정보를 조회합니다 (강사 현황_v2 시트).
  * @returns 강사 상세 정보 목록
  */
 export async function getAllInstructorDetails(): Promise<InstructorDetail[]> {
   const sheets = getGoogleSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_LOGIN_SPREADSHEET_ID || process.env.GOOGLE_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
+  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
   const sheetName = '강사 현황_v2';
 
   try {
@@ -701,55 +830,34 @@ export async function getAllInstructorDetails(): Promise<InstructorDetail[]> {
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       
-      // A열은 번호이므로 무시하고, B열부터 읽기
-      const status = (row[1] || '').trim(); // B열: 강사 상태
-      const name = (row[2] || '').trim(); // C열: 강사이름
-      
-      // 강사 이름이 있는 경우만 추가
+      const status = (row[0] || '').trim(); // A열: 상태
+      const name = (row[1] || '').trim(); // B열: 이름
+      const email = (row[2] || '').trim(); // C열: 이메일
+      const mobile = (row[3] || '').trim(); // D열: 전화번호
+      const affiliation = (row[4] || '').trim(); // E열: 소속
+      const specialty = (row[5] || '').trim(); // F열: 전문분야
+      const experience = (row[6] || '').trim(); // G열: 경력
+      const fee = (row[7] || '').trim(); // H열: 강사료
+      const availability = (row[8] || '').trim(); // I열: 가능일정
+      const notes = (row[9] || '').trim(); // J열: 특이사항
+
+      // 이름이 있는 경우만 추가
       if (name) {
-        const affiliation = (row[3] || '').trim(); // D열: 소속
-        const role = (row[4] || '').trim(); // E열: 직무
-        const yearsOfExperience = (row[5] || '').trim(); // F열: 연차
-        const monthlyAverageClasses = (row[6] || '').trim(); // G열: 월별 평균 출강수
-        const level = (row[7] || '').trim(); // H열: 강사레벨
-        const levelDescription = (row[8] || '').trim(); // I열: 강사레벨 Description
-        const educationStrategy = (row[9] || '').trim(); // J열: 교육 주제 / 파견 전략
-        const notes = (row[10] || '').trim(); // K열: 특이사항
-
-        // 교육가능영역 (L~R열)
-        const newDevelopment = (row[11] || '').trim().toLowerCase() === 'o'; // L열
-        const leaderExecutive = (row[12] || '').trim().toLowerCase() === 'o'; // M열
-        const leaderManager = (row[13] || '').trim().toLowerCase() === 'o'; // N열
-        const specialLecture = (row[14] || '').trim().toLowerCase() === 'o'; // O열
-        const standardEducation = (row[15] || '').trim().toLowerCase() === 'o'; // P열
-        const reportEducation = (row[16] || '').trim().toLowerCase() === 'o'; // Q열
-        const handsOnSession = (row[17] || '').trim().toLowerCase() === 'o'; // R열
-
         instructors.push({
           status,
           name: normalizeName(name),
+          email,
+          mobile,
           affiliation,
-          role,
-          yearsOfExperience,
-          monthlyAverageClasses,
-          level,
-          levelDescription,
-          educationStrategy,
+          specialty,
+          experience,
+          fee,
+          availability,
           notes,
-          availableAreas: {
-            newDevelopment,
-            leaderExecutive,
-            leaderManager,
-            specialLecture,
-            standardEducation,
-            reportEducation,
-            handsOnSession,
-          },
         });
       }
     }
 
-    // 강사명으로 정렬
     return instructors.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
     console.error('Error fetching instructor details:', error);
@@ -875,4 +983,567 @@ export async function getOverallMonthlyRecruitmentStats(): Promise<{
   return monthlyStats;
 }
 
+/**
+ * 강사 현황 시트에서 모든 강사 정보를 조회합니다 (D열이 "내부"인 경우 제외)
+ * @returns 강사 정보 목록
+ */
+export interface InstructorInfo {
+  rowIndex: number; // 시트의 행 번호 (1-based, 헤더 포함)
+  name: string; // C열: 강사이름
+  affiliation: string; // D열: 소속
+  mobile: string; // G열: 이동통신
+  email: string; // H열: 이메일
+  fee: string; // I열: 강사료
+  notes: string; // N열: 특이사항
+  // 기타 필요한 컬럼들 추가 가능
+  [key: string]: string | number; // 동적 필드 지원
+}
 
+export async function getAllInstructorInfo(excludeInternal: boolean = true): Promise<InstructorInfo[]> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_LOGIN_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
+  const sheetName = '강사 현황';
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:Z`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return [];
+    }
+
+    const instructors: InstructorInfo[] = [];
+
+    // 헤더 행을 제외하고 데이터 행만 처리
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      
+      const name = (row[2] || '').trim(); // C열: 강사이름
+      const affiliation = (row[3] || '').trim(); // D열: 소속
+      const notes = (row[13] || '').trim(); // N열: 특이사항
+      
+      // D열이 "내부"인 경우 제외
+      if (excludeInternal && affiliation === '내부') {
+        continue;
+      }
+      
+      // 강사 이름이 있는 경우만 추가
+      if (name) {
+        instructors.push({
+          rowIndex: i + 1, // 시트의 실제 행 번호 (1-based)
+          name: normalizeName(name),
+          affiliation,
+          mobile: (row[6] || '').trim(), // G열: 이동통신
+          email: (row[7] || '').trim(), // H열: 이메일
+          fee: (row[8] || '').trim(), // I열: 강사료
+          notes,
+        });
+      }
+    }
+
+    // 강사명으로 정렬
+    return instructors.sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    console.error('Error fetching instructor info:', error);
+    throw error;
+  }
+}
+
+/**
+ * 강사 정보를 시트에 업데이트합니다
+ * @param rowIndex 시트의 행 번호 (1-based)
+ * @param columnIndex 업데이트할 컬럼 인덱스 (0-based, A=0, B=1, ...)
+ * @param value 업데이트할 값
+ */
+export async function updateInstructorCell(
+  rowIndex: number,
+  columnIndex: number,
+  value: string
+): Promise<void> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_LOGIN_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
+  const sheetName = '강사 현황';
+
+  try {
+    // 컬럼 인덱스를 알파벳으로 변환 (A, B, C, ...)
+    const columnLetter = String.fromCharCode(65 + columnIndex); // A=65
+    
+    // 범위 지정 (예: C5, D5 등)
+    const range = `${sheetName}!${columnLetter}${rowIndex}`;
+    
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[value]],
+      },
+    });
+  } catch (error) {
+    console.error('Error updating instructor cell:', error);
+    throw error;
+  }
+}
+
+/**
+ * 교육 일정 데이터 타입 (class_schedule(등록) 시트)
+ */
+export interface ClassScheduleData {
+  rowIndex: number; // 시트의 행 번호 (0-based, 헤더 제외)
+  educationDate: string; // 교육일
+  isTentative: string; // 가일정 여부
+  clientName: string; // 고객사명
+  className: string; // 클래스명
+  dri: string; // DRI
+  instructor: string; // 강사
+  coach: string; // 코치
+}
+
+/**
+ * class_schedule(등록) 시트에서 교육 일정을 조회합니다.
+ * @param year 필터링할 연도 (기본값: 2026)
+ * @returns 교육 일정 데이터 목록
+ */
+export async function getClassSchedules(year: number = 2026): Promise<ClassScheduleData[]> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
+  const sheetName = 'class_schedule(등록)';
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:Z`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return [];
+    }
+
+    const schedules: ClassScheduleData[] = [];
+
+    // 헤더 행을 제외하고 데이터 행만 처리
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      
+      const educationDate = (row[0] || '').trim(); // A열: 교육일
+      const isTentative = (row[1] || '').trim(); // B열: 가일정 여부
+      const clientName = (row[2] || '').trim(); // C열: 고객사명
+      const className = (row[3] || '').trim(); // D열: 클래스명
+      const dri = (row[4] || '').trim(); // E열: DRI
+      const instructor = (row[5] || '').trim(); // F열: 강사
+      const coach = (row[6] || '').trim(); // G열: 코치
+
+      // 연도 필터링 (교육일에서 연도 추출)
+      if (educationDate) {
+        const dateMatch = educationDate.match(/(\d{4})/);
+        if (dateMatch) {
+          const scheduleYear = parseInt(dateMatch[1]);
+          if (scheduleYear !== year) {
+            continue;
+          }
+        }
+      }
+
+      // 교육일이 있는 경우만 추가
+      if (educationDate) {
+        schedules.push({
+          rowIndex: i, // 0-based, 헤더 제외
+          educationDate,
+          isTentative,
+          clientName,
+          className,
+          dri,
+          instructor,
+          coach,
+        });
+      }
+    }
+
+    return schedules;
+  } catch (error) {
+    console.error('Error fetching class schedules:', error);
+    throw error;
+  }
+}
+
+/**
+ * 기업명을 클래스명에서 추출합니다.
+ * @param className 클래스명 (예: "[핑거]생성형AI교육_데이터 분석 과정")
+ * @returns 기업명 (예: "핑거")
+ */
+export function extractCompanyName(className: string): string {
+  if (!className) return '';
+  const match = className.match(/\[([^\]]+)\]/);
+  return match && match[1] ? match[1].trim() : '';
+}
+
+/**
+ * 섭외 요청을 외부강사_섭외_로그 시트에 생성합니다.
+ * @param requestId 요청 ID
+ * @param schedules 선택된 교육 일정 목록
+ * @param instructorName 강사 이름
+ * @returns 수락 링크와 거절 링크
+ */
+export async function createRecruitmentRequest(
+  requestId: string,
+  schedules: ClassScheduleData[],
+  instructorName: string
+): Promise<{ acceptLink: string; declineLink: string }> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
+  const sheetName = '외부강사_섭외_로그';
+
+  try {
+    // GAS URL 생성
+    const gasBaseUrl = 'https://script.google.com/macros/s/AKfycbxA29rND5ly6CCenVKSyQgRgiSBeHuYC0sTmn5jMuVRaJO149BDOHcFaazMe3xcNkxd/exec';
+    const acceptLink = `${gasBaseUrl}?action=accept&requestId=${requestId}`;
+    const declineLink = `${gasBaseUrl}?action=decline&requestId=${requestId}`;
+
+    // 현재 날짜로 요청월 계산
+    const now = new Date();
+    const requestMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // 각 일정에 대해 시트에 추가
+    const values: any[][] = [];
+    for (const schedule of schedules) {
+      const companyName = extractCompanyName(schedule.className) || schedule.clientName;
+      
+      // 시트 구조: 요청ID | 기업명 | 교육명 | 교육일 | 멘토명 | 상태 | 응답일 | 거절사유
+      values.push([
+        requestId, // A열: 요청ID
+        companyName, // B열: 기업명
+        schedule.className, // C열: 교육명
+        schedule.educationDate, // D열: 교육일
+        instructorName, // E열: 멘토명
+        'REQUESTED', // F열: 상태
+        '', // G열: 응답일
+        '', // H열: 거절사유
+        requestMonth, // I열: 요청월
+      ]);
+    }
+
+    // 시트에 데이터 추가
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${sheetName}!A:Z`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values,
+      },
+    });
+
+    return { acceptLink, declineLink };
+  } catch (error) {
+    console.error('Error creating recruitment request:', error);
+    throw error;
+  }
+}
+
+/**
+ * 외부강사_섭외_로그 시트에서 섭외 요청 목록을 조회합니다.
+ * @returns 섭외 요청 데이터 목록
+ */
+export async function getRecruitmentRequests(): Promise<RecruitmentLogData[]> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
+  const sheetName = '외부강사_섭외_로그';
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:Z`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return [];
+    }
+
+    const requests: RecruitmentLogData[] = [];
+
+    // 헤더 행을 제외하고 데이터 행만 처리
+    // 시트 구조: 요청ID | 기업명 | 교육명 | 교육일 | 멘토명 | 상태 | 응답일 | 거절사유
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      
+      const requestId = (row[0] || '').trim(); // A열: 요청ID
+      const companyName = (row[1] || '').trim(); // B열: 기업명
+      const educationName = (row[2] || '').trim(); // C열: 교육명
+      const educationDate = (row[3] || '').trim(); // D열: 교육일
+      const instructorName = (row[4] || '').trim(); // E열: 멘토명
+      const status = (row[5] || '').trim().toUpperCase(); // F열: 상태
+      const responseDate = (row[6] || '').trim(); // G열: 응답일
+      const declineReason = (row[7] || '').trim(); // H열: 거절사유
+      const requestMonth = (row[8] || '').trim(); // I열: 요청월
+
+      // 요청ID가 있는 경우만 추가
+      if (requestId) {
+        requests.push({
+          requestId,
+          educationName: educationName || companyName, // 교육명이 없으면 기업명 사용
+          educationDate,
+          instructorName: normalizeName(instructorName),
+          result: (status === 'APPROVED' || status === 'ACCEPTED' ? 'APPROVED' : status === 'DECLINED' ? 'DECLINED' : status === 'CANCELLED' ? 'CANCELLED' : 'REQUESTED') as 'APPROVED' | 'DECLINED' | 'CANCELLED' | 'REQUESTED',
+          declineReason: declineReason || undefined,
+          responseDateTime: responseDate || undefined,
+          requestMonth: requestMonth || '',
+        });
+      }
+    }
+
+    return requests;
+  } catch (error) {
+    console.error('Error fetching recruitment requests:', error);
+    throw error;
+  }
+}
+
+/**
+ * 승인된 섭외 요청을 처리하여 class_schedule(등록) 시트의 F열(강사)에 강사 이름을 추가합니다.
+ * @param requestId 요청 ID
+ * @returns 업데이트된 일정 개수
+ */
+export async function processApprovedRecruitment(requestId: string): Promise<number> {
+  const sheets = getGoogleSheetsClient();
+  const recruitmentSpreadsheetId = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
+  const scheduleSpreadsheetId = process.env.GOOGLE_SPREADSHEET_ID || '1MKm00PfsR4CWBF-xo9qThN8lElrZVg6wuC7blbZXL68';
+  const recruitmentSheetName = '외부강사_섭외_로그';
+  const scheduleSheetName = 'class_schedule(등록)';
+
+  try {
+    // 1. 외부강사_섭외_로그 시트에서 해당 requestId의 승인된 요청 조회
+    const recruitmentResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: recruitmentSpreadsheetId,
+      range: `${recruitmentSheetName}!A:Z`,
+    });
+
+    const recruitmentRows = recruitmentResponse.data.values;
+    if (!recruitmentRows || recruitmentRows.length === 0) {
+      return 0;
+    }
+
+    // 승인된 요청 필터링 (requestId 일치, 상태가 APPROVED 또는 ACCEPTED)
+    const approvedRequests: Array<{
+      educationName: string;
+      educationDate: string;
+      instructorName: string;
+    }> = [];
+
+    for (let i = 1; i < recruitmentRows.length; i++) {
+      const row = recruitmentRows[i];
+      const reqId = (row[0] || '').trim();
+      const status = (row[5] || '').trim().toUpperCase();
+      const educationName = (row[2] || '').trim(); // C열: 교육명
+      const educationDate = (row[3] || '').trim(); // D열: 교육일
+      const instructorName = (row[4] || '').trim(); // E열: 멘토명
+
+      if (reqId === requestId && (status === 'APPROVED' || status === 'ACCEPTED') && educationName && educationDate && instructorName) {
+        approvedRequests.push({
+          educationName,
+          educationDate,
+          instructorName,
+        });
+      }
+    }
+
+    if (approvedRequests.length === 0) {
+      return 0;
+    }
+
+    // 2. class_schedule(등록) 시트에서 일치하는 행 찾기
+    const scheduleResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: scheduleSpreadsheetId,
+      range: `${scheduleSheetName}!A:Z`,
+    });
+
+    const scheduleRows = scheduleResponse.data.values;
+    if (!scheduleRows || scheduleRows.length === 0) {
+      return 0;
+    }
+
+    // 날짜 파싱 헬퍼 함수
+    const parseDate = (dateStr: string): Date | null => {
+      if (!dateStr) return null;
+      
+      const trimmed = dateStr.trim();
+      
+      // YYYY. M. D 형식 (예: "2026. 1. 18", "2026.1.18")
+      const match1 = trimmed.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
+      if (match1) {
+        const [, year, month, day] = match1;
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      }
+      
+      // YYYY-MM-DD 형식 (예: "2026-01-18")
+      const match2 = trimmed.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (match2) {
+        const [, year, month, day] = match2;
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      }
+      
+      // YYYY/MM/DD 형식 (예: "2026/01/18")
+      const match3 = trimmed.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+      if (match3) {
+        const [, year, month, day] = match3;
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      }
+      
+      // YY-MM-DD 형식 (예: "26-01-18" -> 2026년으로 가정)
+      const match4 = trimmed.match(/(\d{2})-(\d{1,2})-(\d{1,2})/);
+      if (match4) {
+        const [, year, month, day] = match4;
+        const fullYear = parseInt(year) < 50 ? 2000 + parseInt(year) : 1900 + parseInt(year);
+        return new Date(fullYear, parseInt(month) - 1, parseInt(day));
+      }
+      
+      return null;
+    };
+
+    let updatedCount = 0;
+
+    // 각 승인된 요청에 대해 일치하는 일정 찾기
+    for (const approvedRequest of approvedRequests) {
+      const requestDate = parseDate(approvedRequest.educationDate);
+      if (!requestDate) {
+        console.log(`Failed to parse date: ${approvedRequest.educationDate}`);
+        continue;
+      }
+
+      console.log(`Processing approved request: EducationName=${approvedRequest.educationName}, Date=${approvedRequest.educationDate}, Instructor=${approvedRequest.instructorName}`);
+
+      // class_schedule(등록) 시트에서 일치하는 행 찾기
+      for (let i = 1; i < scheduleRows.length; i++) {
+        const row = scheduleRows[i];
+        const scheduleDateStr = (row[0] || '').trim(); // A열: 교육일
+        const scheduleClassName = (row[3] || '').trim(); // D열: 클래스명
+        const currentInstructor = (row[5] || '').trim(); // F열: 강사
+
+        if (!scheduleDateStr || !scheduleClassName) {
+          continue;
+        }
+
+        const scheduleDate = parseDate(scheduleDateStr);
+        if (!scheduleDate) {
+          continue;
+        }
+
+        // 날짜 비교 (A열: 교육일)
+        const datesMatch = 
+          requestDate.getFullYear() === scheduleDate.getFullYear() &&
+          requestDate.getMonth() === scheduleDate.getMonth() &&
+          requestDate.getDate() === scheduleDate.getDate();
+
+        if (!datesMatch) {
+          continue;
+        }
+
+        // 클래스명 비교 (D열: 클래스명과 교육명 비교)
+        // 공백 제거 후 비교하여 더 정확한 매칭
+        const normalizedScheduleClassName = scheduleClassName.replace(/\s+/g, '').toLowerCase();
+        const normalizedEducationName = approvedRequest.educationName.replace(/\s+/g, '').toLowerCase();
+        
+        const namesMatch = normalizedScheduleClassName.includes(normalizedEducationName) || 
+                          normalizedEducationName.includes(normalizedScheduleClassName) ||
+                          normalizedScheduleClassName === normalizedEducationName;
+
+        if (namesMatch) {
+          console.log(`✓ Matching found: Date=${scheduleDateStr}, ClassName=${scheduleClassName}, EducationName=${approvedRequest.educationName}, Instructor=${approvedRequest.instructorName}`);
+          
+          // F열(강사) 업데이트
+          const rowNumber = i + 1; // 1-based
+          let newInstructorValue = approvedRequest.instructorName;
+
+          // 기존 강사가 있으면 추가 (쉼표로 구분)
+          if (currentInstructor && currentInstructor.trim() !== '') {
+            const instructors = currentInstructor.split(',').map((s: string) => s.trim()).filter((s: string) => s);
+            if (!instructors.includes(approvedRequest.instructorName)) {
+              instructors.push(approvedRequest.instructorName);
+              newInstructorValue = instructors.join(', ');
+            } else {
+              // 이미 있으면 업데이트하지 않음
+              console.log(`  → Instructor ${approvedRequest.instructorName} already exists, skipping`);
+              continue;
+            }
+          }
+
+          // 시트 업데이트
+          try {
+            await sheets.spreadsheets.values.update({
+              spreadsheetId: scheduleSpreadsheetId,
+              range: `${scheduleSheetName}!F${rowNumber}`,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: {
+                values: [[newInstructorValue]],
+              },
+            });
+            console.log(`  → Updated row ${rowNumber}, F column with: ${newInstructorValue}`);
+            updatedCount++;
+          } catch (updateError) {
+            console.error(`  → Error updating row ${rowNumber}:`, updateError);
+          }
+        }
+      }
+    }
+
+    return updatedCount;
+  } catch (error) {
+    console.error('Error processing approved recruitment:', error);
+    throw error;
+  }
+}
+
+/**
+ * 모든 승인된 섭외 요청을 처리합니다.
+ * @returns 업데이트된 일정 개수
+ */
+export async function processAllApprovedRecruitments(): Promise<number> {
+  const sheets = getGoogleSheetsClient();
+  const recruitmentSpreadsheetId = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
+  const recruitmentSheetName = '외부강사_섭외_로그';
+
+  try {
+    // 모든 requestId 수집
+    const recruitmentResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: recruitmentSpreadsheetId,
+      range: `${recruitmentSheetName}!A:Z`,
+    });
+
+    const recruitmentRows = recruitmentResponse.data.values;
+    if (!recruitmentRows || recruitmentRows.length === 0) {
+      return 0;
+    }
+
+    // 고유한 requestId 수집 (승인된 것만)
+    const uniqueRequestIds = new Set<string>();
+    for (let i = 1; i < recruitmentRows.length; i++) {
+      const row = recruitmentRows[i];
+      const reqId = (row[0] || '').trim();
+      const status = (row[5] || '').trim().toUpperCase();
+      
+      if (reqId && (status === 'APPROVED' || status === 'ACCEPTED')) {
+        uniqueRequestIds.add(reqId);
+      }
+    }
+
+    // 각 requestId에 대해 처리
+    let totalUpdated = 0;
+    for (const requestId of uniqueRequestIds) {
+      try {
+        const count = await processApprovedRecruitment(requestId);
+        totalUpdated += count;
+      } catch (error) {
+        console.error(`Error processing requestId ${requestId}:`, error);
+        // 개별 오류는 무시하고 계속 진행
+      }
+    }
+
+    return totalUpdated;
+  } catch (error) {
+    console.error('Error processing all approved recruitments:', error);
+    throw error;
+  }
+}

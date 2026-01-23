@@ -8,6 +8,7 @@ export default function LoginPage() {
   const [loginType, setLoginType] = useState<'instructor' | 'em'>('instructor');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [pinCode, setPinCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -25,7 +26,8 @@ export default function LoginPage() {
         },
         body: JSON.stringify({
           name,
-          email,
+          email: loginType === 'instructor' ? email : undefined,
+          pinCode: pinCode || undefined,
           role: loginType === 'em' ? 'EM' : undefined,
         }),
       });
@@ -108,69 +110,143 @@ export default function LoginPage() {
           {/* 폼 */}
           <form className="px-8 pb-10" onSubmit={handleSubmit}>
             <div className="space-y-5">
-              {/* 이름 입력 */}
-              <div>
-                <label
-                  htmlFor="name"
-                  className={`block text-sm font-medium mb-2 transition-colors ${
-                    focusedField === 'name'
-                      ? 'text-gray-900'
-                      : 'text-gray-700'
-                  }`}
-                >
-                  {loginType === 'em' ? '성함' : '강사명'}
-                </label>
-                <div className="relative">
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onFocus={() => setFocusedField('name')}
-                    onBlur={() => setFocusedField(null)}
-                    className={`w-full px-4 py-3 border rounded-lg text-sm transition-all duration-200 focus:outline-none ${
+              {/* EM 로그인: 성함 입력 */}
+              {loginType === 'em' && (
+                <div>
+                  <label
+                    htmlFor="name"
+                    className={`block text-sm font-medium mb-2 transition-colors ${
                       focusedField === 'name'
-                        ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
-                        : 'border-gray-300 focus:border-gray-900'
+                        ? 'text-gray-900'
+                        : 'text-gray-700'
                     }`}
-                    placeholder={loginType === 'em' ? 'comento' : '김유빈'}
-                  />
+                  >
+                    성함
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="name"
+                      name="name"
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      onFocus={() => setFocusedField('name')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`w-full px-4 py-3 border rounded-lg text-sm transition-all duration-200 focus:outline-none ${
+                        focusedField === 'name'
+                          ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
+                          : 'border-gray-300 focus:border-gray-900'
+                      }`}
+                      placeholder=""
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* 이메일 입력 */}
-              <div>
-                <label
-                  htmlFor="email"
-                  className={`block text-sm font-medium mb-2 transition-colors ${
-                    focusedField === 'email'
-                      ? 'text-gray-900'
-                      : 'text-gray-700'
-                  }`}
-                >
-                  이메일
-                </label>
-                <div className="relative">
-                  <input
-                    id="email"
-                    name="email"
-                    type="text"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
-                    className={`w-full px-4 py-3 border rounded-lg text-sm transition-all duration-200 focus:outline-none ${
-                      focusedField === 'email'
-                        ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
-                        : 'border-gray-300 focus:border-gray-900'
+              {/* EM 로그인: 핀코드 입력 */}
+              {loginType === 'em' && (
+                <div>
+                  <label
+                    htmlFor="pinCode"
+                    className={`block text-sm font-medium mb-2 transition-colors ${
+                      focusedField === 'pinCode'
+                        ? 'text-gray-900'
+                        : 'text-gray-700'
                     }`}
-                    placeholder={loginType === 'em' ? 'comento0804!' : 'yubin@comento.co.kr'}
-                  />
+                  >
+                    핀코드
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="pinCode"
+                      name="pinCode"
+                      type="password"
+                      required
+                      value={pinCode}
+                      onChange={(e) => setPinCode(e.target.value)}
+                      onFocus={() => setFocusedField('pinCode')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`w-full px-4 py-3 border rounded-lg text-sm transition-all duration-200 focus:outline-none ${
+                        focusedField === 'pinCode'
+                          ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
+                          : 'border-gray-300 focus:border-gray-900'
+                      }`}
+                      placeholder=""
+                      maxLength={20}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* 강사 로그인: 이메일 입력 */}
+              {loginType === 'instructor' && (
+                <div>
+                  <label
+                    htmlFor="email"
+                    className={`block text-sm font-medium mb-2 transition-colors ${
+                      focusedField === 'email'
+                        ? 'text-gray-900'
+                        : 'text-gray-700'
+                    }`}
+                  >
+                    이메일
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onFocus={() => setFocusedField('email')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`w-full px-4 py-3 border rounded-lg text-sm transition-all duration-200 focus:outline-none ${
+                        focusedField === 'email'
+                          ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
+                          : 'border-gray-300 focus:border-gray-900'
+                      }`}
+                      placeholder="yubin@comento.co.kr"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 강사 로그인: 핀코드 입력 */}
+              {loginType === 'instructor' && (
+                <div>
+                  <label
+                    htmlFor="pinCode"
+                    className={`block text-sm font-medium mb-2 transition-colors ${
+                      focusedField === 'pinCode'
+                        ? 'text-gray-900'
+                        : 'text-gray-700'
+                    }`}
+                  >
+                    핀코드
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="pinCode"
+                      name="pinCode"
+                      type="password"
+                      required
+                      value={pinCode}
+                      onChange={(e) => setPinCode(e.target.value)}
+                      onFocus={() => setFocusedField('pinCode')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`w-full px-4 py-3 border rounded-lg text-sm transition-all duration-200 focus:outline-none ${
+                        focusedField === 'pinCode'
+                          ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
+                          : 'border-gray-300 focus:border-gray-900'
+                      }`}
+                      placeholder="핀코드를 입력하세요"
+                      maxLength={10}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 에러 메시지 */}

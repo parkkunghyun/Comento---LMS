@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { getInstructorEvents } from '@/lib/google-calendar';
+import { deleteCalendarEvent } from '@/lib/google-calendar';
 
 const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || 'c_434b3261f4e10e2caf2228a9f17b773c88a54e11c52d3ac541d8dd1ad323e01a@group.calendar.google.com';
 
-export async function GET(request: NextRequest) {
+export async function DELETE(request: NextRequest) {
   try {
     // 인증 확인
     const user = await getCurrentUser();
@@ -15,29 +15,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 쿼리 파라미터에서 날짜 범위 가져오기
     const searchParams = request.nextUrl.searchParams;
-    const timeMin = searchParams.get('timeMin') || undefined;
-    const timeMax = searchParams.get('timeMax') || undefined;
+    const eventId = searchParams.get('eventId');
 
-    // 강사 기업교육 일정 조회
-    const calendarEvents = await getInstructorEvents(
-      user.email,
-      CALENDAR_ID,
-      timeMin,
-      timeMax
-    );
+    if (!eventId) {
+      return NextResponse.json(
+        { error: '이벤트 ID가 필요합니다.' },
+        { status: 400 }
+      );
+    }
+
+    // 일정 삭제
+    await deleteCalendarEvent(CALENDAR_ID, eventId);
 
     return NextResponse.json({
       success: true,
-      events: calendarEvents,
+      message: '일정이 삭제되었습니다.',
     });
-  } catch (error: any) {
-    console.error('Calendar API error:', error);
+  } catch (error) {
+    console.error('Delete calendar event API error:', error);
     return NextResponse.json(
-      { error: '일정을 불러오는 중 오류가 발생했습니다.' },
+      { error: '일정 삭제 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
 }
-

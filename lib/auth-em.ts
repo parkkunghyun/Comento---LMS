@@ -3,14 +3,14 @@
  */
 const EM_CREDENTIALS = {
   name: 'comento',
-  email: 'comento0804!',
+  pinCode: 'comento0804!',
 };
 
 /**
- * EM 로그인 정보를 검증합니다.
+ * EM 로그인 정보를 검증합니다 (성함 + 핀코드).
  */
-export function verifyEMCredentials(name: string, email: string): boolean {
-  return name === EM_CREDENTIALS.name && email === EM_CREDENTIALS.email;
+export function verifyEMCredentials(name: string, pinCode: string): boolean {
+  return name === EM_CREDENTIALS.name && pinCode === EM_CREDENTIALS.pinCode;
 }
 
 

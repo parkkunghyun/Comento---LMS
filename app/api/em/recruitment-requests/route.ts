@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { getAllInstructorsWithEmail } from '@/lib/google-sheets';
+import { getRecruitmentRequests } from '@/lib/google-sheets';
 
+/**
+ * 섭외 요청 목록 조회 API
+ * GET /api/em/recruitment-requests
+ */
 export async function GET(request: NextRequest) {
   try {
     // 인증 확인
@@ -13,20 +17,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 외부강사 목록만 조회 (소속이 "내부"가 아닌 강사만)
-    const instructors = await getAllInstructorsWithEmail(true);
+    // 섭외 요청 목록 조회
+    const requests = await getRecruitmentRequests();
 
     return NextResponse.json({
       success: true,
-      instructors,
+      requests,
     });
   } catch (error) {
-    console.error('Instructors API error:', error);
+    console.error('Recruitment requests API error:', error);
     return NextResponse.json(
-      { error: '강사 목록을 불러오는 중 오류가 발생했습니다.' },
+      { error: '섭외 요청 목록을 불러오는 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
 }
-
-

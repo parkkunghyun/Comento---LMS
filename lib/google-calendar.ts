@@ -18,7 +18,10 @@ export function getGoogleCalendarClient() {
   const auth = new google.auth.JWT({
     email: serviceAccountEmail,
     key: privateKey,
-    scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+    scopes: [
+      'https://www.googleapis.com/auth/calendar.readonly',
+      'https://www.googleapis.com/auth/calendar.events',
+    ],
   });
 
   return google.calendar({ version: 'v3', auth });
@@ -46,6 +49,7 @@ export interface CalendarEvent {
     instructorName?: string; // 강사 이름 (이메일로 조회)
   }>;
   location?: string;
+  isPersonal?: boolean; // 개인 일정 여부
 }
 
 /**
@@ -76,16 +80,33 @@ export async function getInstructorEvents(
 
     const events = response.data.items || [];
 
+    console.log(`[getInstructorEvents] 조회 강사 이메일: ${instructorEmail}`);
+    console.log(`[getInstructorEvents] 전체 이벤트 개수: ${events.length}`);
+
     // 참석자 이메일로 필터링
     const filteredEvents = events.filter((event) => {
       if (!event.attendees || event.attendees.length === 0) {
         return false;
       }
-      // 참석자 중에 해당 강사 이메일이 있는지 확인
-      return event.attendees.some(
-        (attendee) => attendee.email?.toLowerCase() === instructorEmail.toLowerCase()
+      
+      // 참석자 이메일 목록 확인
+      const attendeeEmails = event.attendees
+        .map(a => a.email?.trim().toLowerCase())
+        .filter(Boolean);
+      
+      const normalizedInstructorEmail = instructorEmail.trim().toLowerCase();
+      const isMatch = attendeeEmails.some(
+        (email) => email === normalizedInstructorEmail
       );
+      
+      if (isMatch) {
+        console.log(`[getInstructorEvents] ✓ 매칭된 이벤트: ${event.summary} (참석자: ${attendeeEmails.join(', ')})`);
+      }
+      
+      return isMatch;
     });
+
+    console.log(`[getInstructorEvents] 필터링된 이벤트 개수: ${filteredEvents.length}`);
 
     // 모든 참석자 이메일 수집
     const allAttendeeEmails = new Set<string>();
@@ -203,6 +224,155 @@ export async function getAllEvents(
     return allEvents;
   } catch (error) {
     console.error('Error fetching calendar events:', error);
+    throw error;
+  }
+}
+
+/**
+ * 캘린더에 일정을 생성합니다.
+ * @param calendarId 캘린더 ID
+ * @param summary 일정 제목
+ * @param description 일정 설명
+ * @param startDateTime 시작 시간 (ISO 8601)
+ * @param endDateTime 종료 시간 (ISO 8601)
+ * @param attendeeEmails 참석자 이메일 목록
+ * @param location 장소
+ * @returns 생성된 이벤트 ID
+ */
+export async function createCalendarEvent(
+  calendarId: string,
+  summary: string,
+  description: string,
+  startDateTime: string,
+  endDateTime: string,
+  attendeeEmails: string[],
+  location?: string
+): Promise<string> {
+  const calendar = getGoogleCalendarClient();
+
+  try {
+    // 날짜 형식이 올바른지 확인 (ISO 8601 형식)
+    const startDate = new Date(startDateTime);
+    const endDate = new Date(endDateTime);
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new Error('Invalid date format');
+    }
+
+    // ISO 8601 형식으로 변환
+    const startISO = startDate.toISOString();
+    const endISO = endDate.toISOString();
+
+    const event: any = {
+      summary,
+      description: description || '',
+      start: {
+        dateTime: startISO,
+        timeZone: 'Asia/Seoul',
+      },
+      end: {
+        dateTime: endISO,
+        timeZone: 'Asia/Seoul',
+      },
+    };
+
+    // 참석자가 있는 경우에만 추가
+    if (attendeeEmails && attendeeEmails.length > 0) {
+      event.attendees = attendeeEmails.map((email) => ({ email }));
+    }
+
+    // 장소가 있는 경우에만 추가
+    if (location) {
+      event.location = location;
+    }
+
+    const response = await calendar.events.insert({
+      calendarId,
+      requestBody: event,
+    });
+
+    return response.data.id || '';
+  } catch (error) {
+    console.error('Error creating calendar event:', error);
+    throw error;
+  }
+}
+
+/**
+ * 캘린더 일정을 수정합니다.
+ * @param calendarId 캘린더 ID
+ * @param eventId 이벤트 ID
+ * @param summary 일정 제목
+ * @param description 일정 설명
+ * @param startDateTime 시작 시간 (ISO 8601)
+ * @param endDateTime 종료 시간 (ISO 8601)
+ * @param attendeeEmails 참석자 이메일 목록
+ * @param location 장소
+ */
+export async function updateCalendarEvent(
+  calendarId: string,
+  eventId: string,
+  summary: string,
+  description: string,
+  startDateTime: string,
+  endDateTime: string,
+  attendeeEmails: string[],
+  location?: string
+): Promise<void> {
+  const calendar = getGoogleCalendarClient();
+
+  try {
+    // 기존 이벤트 조회
+    const existingEvent = await calendar.events.get({
+      calendarId,
+      eventId,
+    });
+
+    const event = {
+      ...existingEvent.data,
+      summary,
+      description,
+      start: {
+        dateTime: startDateTime,
+        timeZone: 'Asia/Seoul',
+      },
+      end: {
+        dateTime: endDateTime,
+        timeZone: 'Asia/Seoul',
+      },
+      attendees: attendeeEmails.map((email) => ({ email })),
+      location,
+    };
+
+    await calendar.events.update({
+      calendarId,
+      eventId,
+      requestBody: event,
+    });
+  } catch (error) {
+    console.error('Error updating calendar event:', error);
+    throw error;
+  }
+}
+
+/**
+ * 캘린더 일정을 삭제합니다.
+ * @param calendarId 캘린더 ID
+ * @param eventId 이벤트 ID
+ */
+export async function deleteCalendarEvent(
+  calendarId: string,
+  eventId: string
+): Promise<void> {
+  const calendar = getGoogleCalendarClient();
+
+  try {
+    await calendar.events.delete({
+      calendarId,
+      eventId,
+    });
+  } catch (error) {
+    console.error('Error deleting calendar event:', error);
     throw error;
   }
 }

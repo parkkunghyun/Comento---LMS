@@ -52,7 +52,7 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
     { href: '/instructor', label: '캘린더' },
     { href: '/instructor/feedback', label: '피드백' },
     { href: '/instructor/settlement', label: '정산' },
-    { href: '/instructor/recruitment', label: '섭외 완료' },
+    { href: '/instructor/reset-pin', label: '핀코드 재설정' },
   ];
 
   return (

@@ -2,363 +2,578 @@
 
 import { useState, useEffect } from 'react';
 
-interface InstructorDetail {
-  status: string;
+interface InstructorInfo {
+  rowIndex: number;
   name: string;
   affiliation: string;
-  role: string;
-  yearsOfExperience: string;
-  monthlyAverageClasses: string;
-  level: string;
-  levelDescription: string;
-  educationStrategy: string;
+  mobile: string;
+  email: string;
+  fee: string;
   notes: string;
-  availableAreas: {
-    newDevelopment: boolean;
-    leaderExecutive: boolean;
-    leaderManager: boolean;
-    specialLecture: boolean;
-    standardEducation: boolean;
-    reportEducation: boolean;
-    handsOnSession: boolean;
-  };
+  [key: string]: string | number;
 }
 
 const GOOGLE_DRIVE_FOLDER_ID = '1w218kHL14yR1pCZSXHUD3VoY5q3EIj2c';
 const GOOGLE_DRIVE_BASE_URL = `https://drive.google.com/drive/folders/${GOOGLE_DRIVE_FOLDER_ID}`;
 
-const AVAILABLE_AREAS_LABELS = {
-  newDevelopment: '신규개발과정',
-  leaderExecutive: '리더교육(임원)',
-  leaderManager: '리더교육(팀장)',
-  specialLecture: '특강(2H)',
-  standardEducation: '표준교육',
-  reportEducation: '보고서교육',
-  handsOnSession: '핸즈온 세션',
-};
-
 export default function EMInstructorsPage() {
-  const [instructors, setInstructors] = useState<InstructorDetail[]>([]);
+  const [instructors, setInstructors] = useState<InstructorInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedInstructor, setSelectedInstructor] = useState<InstructorDetail | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [editingCell, setEditingCell] = useState<{ rowIndex: number; column: string } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    const loadInstructors = async () => {
-      try {
-        const response = await fetch('/api/em/instructor-details');
-        if (!response.ok) {
-          throw new Error('강사 목록을 불러올 수 없습니다.');
-        }
-        const data = await response.json();
-        setInstructors(data.instructors || []);
-      } catch (err) {
-        console.error('Error loading instructors:', err);
-        setError(err instanceof Error ? err.message : '오류가 발생했습니다.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadInstructors();
   }, []);
 
-  // 필터링
-  const filteredInstructors = instructors.filter((instructor) => {
-    const matchesSearch =
-      instructor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      instructor.affiliation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      instructor.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      instructor.level.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || instructor.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  // 상태별로 그룹화
-  const groupedByStatus = filteredInstructors.reduce((acc, instructor) => {
-    const status = instructor.status || '기타';
-    if (!acc[status]) {
-      acc[status] = [];
+  const loadInstructors = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/em/instructors-info');
+      if (!response.ok) {
+        throw new Error('강사 목록을 불러올 수 없습니다.');
+      }
+      const data = await response.json();
+      setInstructors(data.instructors || []);
+      // 편집 중인 셀 초기화
+      setEditingCell(null);
+      setEditValue('');
+    } catch (err) {
+      console.error('Error loading instructors:', err);
+      setError(err instanceof Error ? err.message : '오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    acc[status].push(instructor);
-    return acc;
-  }, {} as { [key: string]: InstructorDetail[] });
+  };
 
-  // 상태별 통계
-  const statusCounts = instructors.reduce((acc, instructor) => {
-    const status = instructor.status || '기타';
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, {} as { [key: string]: number });
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadInstructors();
+  };
 
-  const uniqueStatuses = Array.from(new Set(instructors.map((i) => i.status || '기타'))).filter(Boolean);
-  
-  // 상태 우선순위 정렬 (Active, 양성중, 기타)
-  const statusOrder = ['Active', '양성중', 'Inactive', '기타'];
-  const sortedStatuses = uniqueStatuses.sort((a, b) => {
-    const aIndex = statusOrder.indexOf(a);
-    const bIndex = statusOrder.indexOf(b);
-    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
-    return aIndex - bIndex;
-  });
+  const toggleRow = (rowIndex: number) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(rowIndex)) {
+      newExpanded.delete(rowIndex);
+    } else {
+      newExpanded.add(rowIndex);
+    }
+    setExpandedRows(newExpanded);
+  };
 
-  return (
-    <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-1">강사 현황</h2>
-          <p className="text-gray-600">강사 프로필 및 실력을 확인하고 관리할 수 있습니다.</p>
+  const startEdit = (rowIndex: number, column: string, currentValue: string) => {
+    setEditingCell({ rowIndex, column });
+    setEditValue(currentValue);
+  };
+
+  const cancelEdit = () => {
+    setEditingCell(null);
+    setEditValue('');
+  };
+
+  const saveEdit = async () => {
+    if (!editingCell) return;
+
+    // 컬럼 인덱스 매핑 (0-based, A=0, B=1, C=2, ...)
+    const columnMap: { [key: string]: number } = {
+      name: 2, // C열 (인덱스 2)
+      affiliation: 3, // D열 (인덱스 3)
+      mobile: 6, // G열 (인덱스 6)
+      email: 7, // H열 (인덱스 7)
+      fee: 8, // I열 (인덱스 8)
+      notes: 13, // N열 (인덱스 13)
+    };
+
+    const columnIndex = columnMap[editingCell.column];
+    if (columnIndex === undefined) {
+      alert('수정할 수 없는 컬럼입니다.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/em/instructors-info/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rowIndex: editingCell.rowIndex,
+          columnIndex,
+          value: editValue,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('업데이트에 실패했습니다.');
+      }
+
+      // 로컬 상태 업데이트
+      setInstructors((prev) =>
+        prev.map((inst) =>
+          inst.rowIndex === editingCell.rowIndex
+            ? { ...inst, [editingCell.column]: editValue }
+            : inst
+        )
+      );
+
+      cancelEdit();
+    } catch (err) {
+      console.error('Error updating instructor:', err);
+      alert('업데이트 중 오류가 발생했습니다.');
+    }
+  };
+
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mx-auto mb-4"></div>
+          <div className="text-sm font-medium text-gray-600">로딩 중...</div>
         </div>
-        <button
-          onClick={() => window.open(GOOGLE_DRIVE_BASE_URL, '_blank')}
-          className="px-4 py-2 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors flex items-center gap-2"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-            />
-          </svg>
-          강사 프로필 드라이브 열기
-        </button>
       </div>
+    );
+  }
 
-      {/* 필터 및 검색 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder="강사명, 소속, 직무, 레벨로 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-            />
-            <svg
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
+  if (error) {
+    return (
+      <div className="bg-gradient-to-br from-red-50 to-rose-50/50 border-2 border-red-200/50 rounded-2xl shadow-lg p-8">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center shadow-md">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <div className="flex gap-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-            >
-              <option value="all">전체 상태</option>
-              {uniqueStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {status} ({statusCounts[status] || 0})
-                </option>
-              ))}
-            </select>
+          <div>
+            <h3 className="text-sm font-bold text-red-900 mb-1">오류가 발생했습니다</h3>
+            <p className="text-sm text-red-700">{error}</p>
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* 강사 목록 */}
-      {loading ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="text-gray-500">로딩 중...</div>
-        </div>
-      ) : error ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="text-red-600 text-sm">{error}</div>
-        </div>
-      ) : filteredInstructors.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="text-gray-500">
-            {searchQuery || statusFilter !== 'all' ? '검색 결과가 없습니다.' : '강사 목록이 없습니다.'}
+  return (
+    <div className="space-y-6 pb-8">
+      {/* 헤더 */}
+      <div className="bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 rounded-2xl shadow-lg border border-gray-200/50 p-8 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-1">강사 현황</h1>
+              <p className="text-sm text-gray-600">강사 정보를 확인하고 수정할 수 있습니다</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+              className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm hover:shadow-md"
+            >
+              <svg
+                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              {refreshing ? '새로고침 중...' : '새로고침'}
+            </button>
+            <button
+              onClick={() => window.open(GOOGLE_DRIVE_BASE_URL, '_blank')}
+              className="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              드라이브 열기
+            </button>
           </div>
         </div>
-      ) : (
-        <div className="space-y-8">
-          {sortedStatuses.map((status) => {
-            const statusInstructors = groupedByStatus[status] || [];
-            if (statusInstructors.length === 0) return null;
-
-            const statusColors = {
-              'Active': 'bg-green-50 border-green-200 text-green-900',
-              '양성중': 'bg-blue-50 border-blue-200 text-blue-900',
-              'Inactive': 'bg-gray-50 border-gray-200 text-gray-900',
-            };
-
-            const statusColor = statusColors[status as keyof typeof statusColors] || 'bg-gray-50 border-gray-200 text-gray-900';
-
-            return (
-              <div key={status} className="space-y-4">
-                {/* 상태별 헤더 */}
-                <div className={`px-6 py-4 rounded-lg border ${statusColor}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold">{status}</h3>
-                      <span className="px-2.5 py-1 bg-white/60 text-xs font-medium rounded-full">
-                        {statusInstructors.length}명
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 강사 카드 그리드 */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {statusInstructors.map((instructor) => (
-            <div
-              key={instructor.name}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-            >
-              {/* 헤더 */}
-              <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-xl font-bold text-gray-900">{instructor.name}</h3>
-                      {instructor.status && (
-                        <span
-                          className={`px-3 py-1 rounded-md text-xs font-semibold ${
-                            instructor.status === 'Active'
-                              ? 'bg-green-100 text-green-800 border border-green-200'
-                              : instructor.status === '양성중'
-                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                              : 'bg-gray-100 text-gray-800 border border-gray-200'
-                          }`}
-                        >
-                          {instructor.status}
-                        </span>
-                      )}
-                      {instructor.level && (
-                        <span className="px-3 py-1 rounded-md text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-                          {instructor.level}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      {instructor.affiliation && (
-                        <span>{instructor.affiliation}</span>
-                      )}
-                      {instructor.role && (
-                        <span className="text-gray-500">•</span>
-                      )}
-                      {instructor.role && (
-                        <span>{instructor.role}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 본문 */}
-              <div className="px-6 py-5 space-y-5">
-                {/* 기본 정보 */}
-                {(instructor.yearsOfExperience || instructor.monthlyAverageClasses) && (
-                  <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100">
-                    {instructor.yearsOfExperience && (
-                      <div>
-                        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">연차</div>
-                        <div className="text-base font-semibold text-gray-900">{instructor.yearsOfExperience}</div>
-                      </div>
-                    )}
-                    {instructor.monthlyAverageClasses && (
-                      <div>
-                        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">월평균 출강수</div>
-                        <div className="text-base font-semibold text-gray-900">{instructor.monthlyAverageClasses}</div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 강사레벨 Description */}
-                {instructor.levelDescription && (
-                  <div className="pb-4 border-b border-gray-100">
-                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">레벨 설명</div>
-                    <div className="text-sm text-gray-900 leading-relaxed">{instructor.levelDescription}</div>
-                  </div>
-                )}
-
-                {/* 교육 주제 / 파견 전략 */}
-                {instructor.educationStrategy && (
-                  <div className="pb-4 border-b border-gray-100">
-                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">교육 주제 / 파견 전략</div>
-                    <div className="text-sm text-gray-900 leading-relaxed whitespace-pre-line">
-                      {instructor.educationStrategy}
-                    </div>
-                  </div>
-                )}
-
-                {/* 교육가능영역 */}
-                <div className="pb-4 border-b border-gray-100">
-                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">교육가능영역</div>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(instructor.availableAreas).map(([key, available]) => {
-                      if (!available) return null;
-                      const label = AVAILABLE_AREAS_LABELS[key as keyof typeof AVAILABLE_AREAS_LABELS];
-                      return (
-                        <span
-                          key={key}
-                          className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-xs font-medium border border-gray-200"
-                        >
-                          {label}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 특이사항 */}
-                {instructor.notes && (
-                  <div>
-                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">특이사항</div>
-                    <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                      {instructor.notes}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      </div>
 
       {/* 통계 */}
       {!loading && !error && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="text-sm text-gray-600">
-            총 <span className="font-semibold text-gray-900">{instructors.length}명</span>의 강사
-            {searchQuery || statusFilter !== 'all' ? (
-              <>
-                {' '}
-                중 <span className="font-semibold text-gray-900">{filteredInstructors.length}명</span> 표시됨
-              </>
-            ) : null}
+        <div className="bg-gradient-to-br from-white via-blue-50/20 to-purple-50/10 rounded-2xl shadow-lg border border-gray-200/50 p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-600 mb-1">강사 통계</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    {instructors.length}
+                  </span>
+                  <span className="text-sm font-medium text-gray-600">명</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      {/* 강사 목록 테이블 */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-16">
+                  {/* 확장 버튼 */}
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  강사명
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  소속
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider min-w-[200px]">
+                  특이사항
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {instructors.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-medium text-gray-500">강사 목록이 없습니다.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                instructors.map((instructor) => {
+                  const isExpanded = expandedRows.has(instructor.rowIndex);
+                  const isEditing = editingCell?.rowIndex === instructor.rowIndex;
+
+                  return (
+                    <>
+                      <tr
+                        key={instructor.rowIndex}
+                        className={`transition-all duration-200 ${
+                          isExpanded 
+                            ? 'bg-gradient-to-r from-blue-50/30 to-purple-50/20' 
+                            : 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/10'
+                        }`}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => toggleRow(instructor.rowIndex)}
+                            className={`p-2 rounded-xl transition-all duration-200 ${
+                              isExpanded
+                                ? 'bg-blue-100 text-blue-600 rotate-180'
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            }`}
+                          >
+                            <svg
+                              className="w-5 h-5 transition-transform"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {isEditing && editingCell?.column === 'name' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={saveEdit}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEdit();
+                                if (e.key === 'Escape') cancelEdit();
+                              }}
+                              className="px-3 py-2 text-sm border-2 border-blue-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white shadow-sm"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              className="text-sm font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                              onClick={() => startEdit(instructor.rowIndex, 'name', instructor.name)}
+                            >
+                              {instructor.name || '-'}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {isEditing && editingCell?.column === 'affiliation' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={saveEdit}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEdit();
+                                if (e.key === 'Escape') cancelEdit();
+                              }}
+                              className="px-3 py-2 text-sm border-2 border-blue-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white shadow-sm"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              className="text-sm font-medium text-gray-700 cursor-pointer hover:text-blue-600 transition-colors"
+                              onClick={() => startEdit(instructor.rowIndex, 'affiliation', instructor.affiliation)}
+                            >
+                              {instructor.affiliation || '-'}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {isEditing && editingCell?.column === 'notes' ? (
+                            <textarea
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={saveEdit}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && e.ctrlKey) saveEdit();
+                                if (e.key === 'Escape') cancelEdit();
+                              }}
+                              className="w-full px-3 py-2 text-sm border-2 border-blue-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white shadow-sm"
+                              rows={4}
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              className="text-sm cursor-pointer"
+                              onClick={() => startEdit(instructor.rowIndex, 'notes', instructor.notes)}
+                            >
+                              {instructor.notes ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {instructor.notes
+                                    .split(/[•·]/)
+                                    .map((item, idx) => {
+                                      const trimmed = item.trim();
+                                      if (!trimmed) return null;
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-800 rounded-lg text-xs font-medium border border-yellow-200 shadow-sm hover:shadow-md transition-shadow"
+                                        >
+                                          • {trimmed}
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-5 bg-gradient-to-br from-white via-blue-50/20 to-purple-50/10">
+                            <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 p-6">
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                                <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-4 border border-gray-200">
+                                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">행 번호</p>
+                                  <p className="text-base font-bold text-gray-900">{instructor.rowIndex}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-xl p-4 border border-blue-200">
+                                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">강사명</p>
+                                  {isEditing && editingCell?.column === 'name' ? (
+                                    <input
+                                      type="text"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveEdit}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') saveEdit();
+                                        if (e.key === 'Escape') cancelEdit();
+                                      }}
+                                      className="w-full px-3 py-2 text-sm border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white shadow-sm"
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <p
+                                      className="text-base font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                                      onClick={() => startEdit(instructor.rowIndex, 'name', instructor.name)}
+                                    >
+                                      {instructor.name}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="bg-gradient-to-br from-purple-50 to-pink-50/50 rounded-xl p-4 border border-purple-200">
+                                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">소속</p>
+                                  {isEditing && editingCell?.column === 'affiliation' ? (
+                                    <input
+                                      type="text"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveEdit}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') saveEdit();
+                                        if (e.key === 'Escape') cancelEdit();
+                                      }}
+                                      className="w-full px-3 py-2 text-sm border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white shadow-sm"
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <p
+                                      className="text-base font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                                      onClick={() => startEdit(instructor.rowIndex, 'affiliation', instructor.affiliation)}
+                                    >
+                                      {instructor.affiliation || '-'}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="bg-gradient-to-br from-green-50 to-emerald-50/50 rounded-xl p-4 border border-green-200">
+                                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">이메일</p>
+                                  {isEditing && editingCell?.column === 'email' ? (
+                                    <input
+                                      type="email"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveEdit}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') saveEdit();
+                                        if (e.key === 'Escape') cancelEdit();
+                                      }}
+                                      className="w-full px-3 py-2 text-sm border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white shadow-sm"
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <p
+                                      className="text-base font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors break-all"
+                                      onClick={() => startEdit(instructor.rowIndex, 'email', instructor.email)}
+                                    >
+                                      {instructor.email || '-'}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="bg-gradient-to-br from-orange-50 to-amber-50/50 rounded-xl p-4 border border-orange-200">
+                                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">전화번호</p>
+                                  {isEditing && editingCell?.column === 'mobile' ? (
+                                    <input
+                                      type="tel"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveEdit}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') saveEdit();
+                                        if (e.key === 'Escape') cancelEdit();
+                                      }}
+                                      className="w-full px-3 py-2 text-sm border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white shadow-sm"
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <p
+                                      className="text-base font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                                      onClick={() => startEdit(instructor.rowIndex, 'mobile', instructor.mobile)}
+                                    >
+                                      {instructor.mobile || '-'}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="bg-gradient-to-br from-indigo-50 to-blue-50/50 rounded-xl p-4 border border-indigo-200">
+                                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">강사료</p>
+                                  {isEditing && editingCell?.column === 'fee' ? (
+                                    <input
+                                      type="text"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveEdit}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') saveEdit();
+                                        if (e.key === 'Escape') cancelEdit();
+                                      }}
+                                      className="w-full px-3 py-2 text-sm border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white shadow-sm"
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <p
+                                      className="text-base font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                                      onClick={() => startEdit(instructor.rowIndex, 'fee', instructor.fee)}
+                                    >
+                                      {instructor.fee || '-'}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="col-span-full bg-gradient-to-br from-yellow-50 to-amber-50/50 rounded-xl p-5 border border-yellow-200">
+                                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">특이사항</p>
+                                  {isEditing && editingCell?.column === 'notes' ? (
+                                    <textarea
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveEdit}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && e.ctrlKey) saveEdit();
+                                        if (e.key === 'Escape') cancelEdit();
+                                      }}
+                                      className="w-full px-4 py-3 text-sm border-2 border-blue-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white shadow-sm"
+                                      rows={4}
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <div
+                                      className="cursor-pointer"
+                                      onClick={() => startEdit(instructor.rowIndex, 'notes', instructor.notes)}
+                                    >
+                                      {instructor.notes ? (
+                                        <div className="space-y-2">
+                                          {instructor.notes
+                                            .split(/[•·]/)
+                                            .map((item, idx) => {
+                                              const trimmed = item.trim();
+                                              if (!trimmed) return null;
+                                              return (
+                                                <div
+                                                  key={idx}
+                                                  className="text-sm text-gray-900 bg-white px-4 py-3 rounded-lg border border-yellow-300 shadow-sm hover:shadow-md transition-shadow"
+                                                >
+                                                  • {trimmed}
+                                                </div>
+                                              );
+                                            })}
+                                        </div>
+                                      ) : (
+                                        <div className="text-sm text-gray-400 bg-white px-4 py-3 rounded-lg border border-gray-200">-</div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

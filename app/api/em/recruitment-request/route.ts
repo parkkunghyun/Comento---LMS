@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { randomUUID } from 'crypto';
+import { createRecruitmentRequest, getClassSchedules, ClassScheduleData } from '@/lib/google-sheets';
 
 /**
  * 섭외 요청 생성 API
  * POST /api/em/recruitment-request
  * 
  * Body: {
- *   eventIds: string[] // 선택된 일정의 eventId 배열
+ *   scheduleIndices: number[] // 선택된 일정의 rowIndex 배열
+ *   instructorName: string // 멘토(외부 강사) 이름
  * }
  * 
  * Response: {
  *   requestId: string // "R-" + UUID
- *   eventIds: string[]
+ *   acceptLink: string // 수락 링크
+ *   declineLink: string // 거절 링크
  * }
  */
 export async function POST(request: NextRequest) {
@@ -27,27 +30,54 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { eventIds } = body;
+    const { scheduleIndices, instructorName } = body;
 
     // 입력 검증
-    if (!eventIds || !Array.isArray(eventIds) || eventIds.length === 0) {
+    if (!scheduleIndices || !Array.isArray(scheduleIndices) || scheduleIndices.length === 0) {
       return NextResponse.json(
         { error: '일정을 선택해주세요.' },
         { status: 400 }
       );
     }
 
-    // requestId 생성: "R-" + UUID
-    const requestId = `R-${randomUUID()}`;
+    if (!instructorName || !instructorName.trim()) {
+      return NextResponse.json(
+        { error: '멘토(외부 강사)를 선택해주세요.' },
+        { status: 400 }
+      );
+    }
 
-    // TODO: 실제로는 데이터베이스나 Google Sheets에 저장해야 합니다.
-    // 여기서는 메모리에 저장 (실제 구현 시 DB 사용 권장)
-    console.log(`[섭외 요청 생성] requestId: ${requestId}, eventIds:`, eventIds);
+    // requestId 생성: "R-" + UUID (하이픈 제거)
+    const uuid = randomUUID().replace(/-/g, '').toUpperCase();
+    const requestId = `R-${uuid}`;
+
+    // 교육 일정 조회
+    const allSchedules = await getClassSchedules(2026);
+    
+    // 선택된 일정 필터링
+    const selectedSchedules = allSchedules.filter((schedule) =>
+      scheduleIndices.includes(schedule.rowIndex)
+    );
+
+    if (selectedSchedules.length === 0) {
+      return NextResponse.json(
+        { error: '선택한 일정을 찾을 수 없습니다.' },
+        { status: 400 }
+      );
+    }
+
+    // 외부강사_섭외_로그 시트에 저장
+    const { acceptLink, declineLink } = await createRecruitmentRequest(
+      requestId,
+      selectedSchedules,
+      instructorName.trim()
+    );
 
     return NextResponse.json({
       success: true,
       requestId,
-      eventIds,
+      acceptLink,
+      declineLink,
     });
   } catch (error) {
     console.error('Recruitment request API error:', error);
