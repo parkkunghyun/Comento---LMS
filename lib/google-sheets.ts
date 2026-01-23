@@ -1199,7 +1199,7 @@ export async function createRecruitmentRequest(
 
   try {
     // GAS URL 생성
-    const gasBaseUrl = 'https://script.google.com/macros/s/AKfycbxA29rND5ly6CCenVKSyQgRgiSBeHuYC0sTmn5jMuVRaJO149BDOHcFaazMe3xcNkxd/exec';
+    const gasBaseUrl = 'https://script.google.com/macros/s/AKfycbxCOSOaj77QvaxnkeZwLiwdEwkJin-vr0PwOyj8KbUnMa0nDvI4etVp6luudRCMem_o/exec';
     const acceptLink = `${gasBaseUrl}?action=accept&requestId=${requestId}`;
     const declineLink = `${gasBaseUrl}?action=decline&requestId=${requestId}`;
 
