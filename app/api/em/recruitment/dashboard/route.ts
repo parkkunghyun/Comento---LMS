@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
 
     // 선택된 기간 통계
     const total = filteredRequests.length;
-    const approved = filteredRequests.filter((r) => r.result === 'APPROVED' || r.result === 'ACCEPTED').length;
+    const approved = filteredRequests.filter((r) => r.result === 'APPROVED').length;
     const declined = filteredRequests.filter((r) => r.result === 'DECLINED').length;
     const declineRate = total > 0 ? (declined / total) * 100 : 0;
 
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
         instructorStats[name] = { approved: 0, declined: 0, total: 0 };
       }
       instructorStats[name].total++;
-      if (req.result === 'APPROVED' || req.result === 'ACCEPTED') {
+      if (req.result === 'APPROVED') {
         instructorStats[name].approved++;
       } else if (req.result === 'DECLINED') {
         instructorStats[name].declined++;
@@ -243,7 +243,7 @@ export async function GET(request: NextRequest) {
       monthlyTrends.push({
         month,
         total: monthRequests.length,
-        approved: monthRequests.filter((r) => r.result === 'APPROVED' || r.result === 'ACCEPTED').length,
+        approved: monthRequests.filter((r) => r.result === 'APPROVED').length,
         declined: monthRequests.filter((r) => r.result === 'DECLINED').length,
       });
     });
@@ -282,7 +282,7 @@ export async function GET(request: NextRequest) {
       });
 
       const last3Months = {
-        approved: last3MonthsRequests.filter((r) => r.result === 'APPROVED' || r.result === 'ACCEPTED').length,
+        approved: last3MonthsRequests.filter((r) => r.result === 'APPROVED').length,
         declined: last3MonthsRequests.filter((r) => r.result === 'DECLINED').length,
         total: last3MonthsRequests.length,
       };
@@ -305,7 +305,7 @@ export async function GET(request: NextRequest) {
         
         const stats = monthMap.get(responseMonth)!;
         stats.total++;
-        if (req.result === 'APPROVED' || req.result === 'ACCEPTED') {
+        if (req.result === 'APPROVED') {
           stats.approved++;
         } else if (req.result === 'DECLINED') {
           stats.declined++;
@@ -344,7 +344,7 @@ export async function GET(request: NextRequest) {
 
       // 선택된 기간 수락 요청의 평균 응답 속도 계산
       const periodApprovedRequests = filteredRequests.filter(
-        (req) => req.instructorName === name && (req.result === 'APPROVED' || req.result === 'ACCEPTED') && req.responseDateTime
+        (req) => req.instructorName === name && req.result === 'APPROVED' && req.responseDateTime
       );
       let avgResponseDays = null;
       if (periodApprovedRequests.length > 0) {

@@ -34,7 +34,7 @@ export async function GET(
     }
 
     // GAS URL 생성
-    const baseUrl = 'https://script.google.com/macros/s/AKfycbwyf7xlJbaIpWXMcS6arwV_cwAg7GEQUZOwhxnE9Vj8-65JPQD_BBkcuOnoGqSt5Nn-/exec';
+    const baseUrl = 'https://script.google.com/macros/s/AKfycbxA29rND5ly6CCenVKSyQgRgiSBeHuYC0sTmn5jMuVRaJO149BDOHcFaazMe3xcNkxd/exec';
     const gasUrl = `${baseUrl}?action=${action}&requestId=${requestId}`;
 
     // 302 리다이렉트

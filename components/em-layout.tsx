@@ -179,15 +179,16 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-3">MAIN MENU</p>
             <ul className="space-y-1">
               {menuItems.map((item) => {
-                if ('children' in item) {
+                if ('children' in item && item.children) {
                   // 하위 메뉴가 있는 경우
-                  const isExpanded = expandedMenus.has(item.key);
+                  const menuKey = item.key || '';
+                  const isExpanded = expandedMenus.has(menuKey);
                   const hasActiveChild = item.children.some(child => pathname === child.href);
                   
                   return (
-                    <li key={item.key}>
+                    <li key={menuKey}>
                       <button
-                        onClick={() => toggleMenu(item.key)}
+                        onClick={() => toggleMenu(menuKey)}
                         className={`
                           w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200
                           ${

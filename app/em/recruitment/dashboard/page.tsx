@@ -265,7 +265,7 @@ export default function RecruitmentDashboardPage() {
                 tickLine={false}
                 axisLine={false}
                 interval={0}
-                tick={{ angle: 0 }}
+                angle={0}
               />
               <YAxis 
                 stroke="#6b7280" 
@@ -337,7 +337,7 @@ export default function RecruitmentDashboardPage() {
                   tickLine={false}
                   axisLine={false}
                   interval={0}
-                  tick={{ angle: 0 }}
+                  angle={0}
                 />
                 <YAxis 
                   stroke="#6b7280" 
@@ -412,7 +412,7 @@ export default function RecruitmentDashboardPage() {
                   tickLine={false}
                   axisLine={false}
                   interval={0}
-                  tick={{ angle: 0 }}
+                  angle={0}
                 />
                 <YAxis 
                   stroke="#6b7280" 

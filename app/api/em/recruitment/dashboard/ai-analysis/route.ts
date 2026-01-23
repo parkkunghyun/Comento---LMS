@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // 이번달 통계
     const totalThisMonth = thisMonthRequests.length;
-    const approvedThisMonth = thisMonthRequests.filter((r) => r.result === 'APPROVED' || r.result === 'ACCEPTED').length;
+    const approvedThisMonth = thisMonthRequests.filter((r) => r.result === 'APPROVED').length;
     const declinedThisMonth = thisMonthRequests.filter((r) => r.result === 'DECLINED').length;
     const declineRate = totalThisMonth > 0 ? (declinedThisMonth / totalThisMonth) * 100 : 0;
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         instructorStats[name] = { approved: 0, declined: 0, total: 0 };
       }
       instructorStats[name].total++;
-      if (req.result === 'APPROVED' || req.result === 'ACCEPTED') {
+      if (req.result === 'APPROVED') {
         instructorStats[name].approved++;
       } else if (req.result === 'DECLINED') {
         instructorStats[name].declined++;
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       monthlyTrends.push({
         month,
         total: monthRequests.length,
-        approved: monthRequests.filter((r) => r.result === 'APPROVED' || r.result === 'ACCEPTED').length,
+        approved: monthRequests.filter((r) => r.result === 'APPROVED').length,
         declined: monthRequests.filter((r) => r.result === 'DECLINED').length,
       });
     });

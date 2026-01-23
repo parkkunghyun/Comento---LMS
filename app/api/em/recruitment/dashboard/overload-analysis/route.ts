@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       const stats = instructorStats[req.instructorName];
       stats.last3Months.total++;
       
-      if (req.result === 'APPROVED' || req.result === 'ACCEPTED') {
+      if (req.result === 'APPROVED') {
         stats.last3Months.approved++;
         
         // 월별 수락 건수 추가

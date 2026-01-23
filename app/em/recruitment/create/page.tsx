@@ -481,7 +481,7 @@ ${declineLink}
                   ) : (
                     filteredSchedules.map((schedule) => {
                       const isSelected = selectedIndices.has(schedule.rowIndex);
-                      const isBlocked = selectedInstructor && isDateBlocked(schedule.educationDate);
+                      const isBlocked = !!(selectedInstructor && isDateBlocked(schedule.educationDate));
                       return (
                         <tr
                           key={schedule.rowIndex}

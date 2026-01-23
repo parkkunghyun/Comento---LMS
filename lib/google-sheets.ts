@@ -1303,6 +1303,28 @@ export async function getRecruitmentRequests(): Promise<RecruitmentLogData[]> {
 }
 
 /**
+ * shortId로 requestId를 찾습니다.
+ * shortId가 requestId의 일부이거나 동일한 경우를 처리합니다.
+ * @param shortId 짧은 ID
+ * @returns requestId 또는 null
+ */
+export async function findRequestIdByShortId(shortId: string): Promise<string | null> {
+  try {
+    const requests = await getRecruitmentRequests();
+    // shortId가 requestId에 포함되어 있는지 확인
+    const matched = requests.find(req => 
+      req.requestId.includes(shortId) || 
+      req.requestId === shortId ||
+      req.requestId.replace(/^R-/, '') === shortId
+    );
+    return matched ? matched.requestId : null;
+  } catch (error) {
+    console.error('Error finding requestId by shortId:', error);
+    return null;
+  }
+}
+
+/**
  * 승인된 섭외 요청을 처리하여 class_schedule(등록) 시트의 F열(강사)에 강사 이름을 추가합니다.
  * @param requestId 요청 ID
  * @returns 업데이트된 일정 개수

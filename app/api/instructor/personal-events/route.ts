@@ -280,7 +280,7 @@ export async function POST(request: NextRequest) {
           spreadsheetId: PERSONAL_EVENTS_SPREADSHEET_ID,
           range: `${PERSONAL_EVENTS_SHEET_NAME}!A1:C1`,
         });
-        hasHeader = headerResponse.data.values && headerResponse.data.values.length > 0;
+        hasHeader = !!(headerResponse.data.values && headerResponse.data.values.length > 0);
         console.log('[개인 일정 API POST] 헤더 존재 여부:', hasHeader);
       } catch (error: any) {
         console.log('[개인 일정 API POST] 헤더 확인 오류:', error.message);
@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 여러 개인 일정 추가
-      const valuesToAdd = datesToAdd.map(date => [user.email, eventSummary, date]);
+      const valuesToAdd = datesToAdd.map((date: string) => [user.email, eventSummary, date]);
       console.log('[개인 일정 API POST] 일정 추가 중...', { email: user.email, count: valuesToAdd.length, dates: datesToAdd });
       
       const appendResponse = await sheets.spreadsheets.values.append({
