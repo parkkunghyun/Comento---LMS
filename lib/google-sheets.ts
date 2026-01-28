@@ -1,6 +1,107 @@
 import { google } from 'googleapis';
 
 /**
+ * EM 정보를 Google Spreadsheet에서 조회합니다 (이름과 비밀번호로).
+ * @param name EM 이름
+ * @param password 비밀번호
+ * @returns EM 정보 또는 null
+ */
+export async function findEMByNameAndPassword(
+  name: string,
+  password: string
+): Promise<{ email: string; name: string } | null> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
+  const sheetName = 'EM로그인';
+
+  try {
+    // 시트의 모든 데이터를 가져옵니다
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:C`, // A열(이메일), B열(이름), C열(비번)
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return null;
+    }
+
+    // 헤더 행을 제외하고 데이터 행만 처리
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      
+      // 컬럼 인덱스: A열(0) - 이메일, B열(1) - 이름, C열(2) - 비번
+      const emEmail = row[0]?.trim() || '';
+      const emName = row[1]?.trim() || '';
+      const emPassword = row[2]?.trim() || '';
+
+      // 이름과 비밀번호가 모두 일치하는 경우
+      if (emName === name && emPassword === password) {
+        return {
+          email: emEmail,
+          name: emName,
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching EM data:', error);
+    throw error;
+  }
+}
+
+/**
+ * EM 정보를 Google Spreadsheet에서 조회합니다 (아이디와 비밀번호로).
+ *
+ * 시트 구조(EM로그인):
+ * - A열: 이메일
+ * - B열: 이름
+ * - C열: 아이디
+ * - D열: 비번
+ */
+export async function findEMByIdAndPassword(
+  emId: string,
+  password: string
+): Promise<{ email: string; name: string } | null> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId =
+    process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID ||
+    '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
+  const sheetName = 'EM로그인';
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:D`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) return null;
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      const emEmail = (row[0] || '').toString().trim();
+      const emName = (row[1] || '').toString().trim();
+      const storedId = (row[2] || '').toString().trim();
+      const storedPassword = (row[3] || '').toString().trim();
+
+      if (storedId === emId && storedPassword === password) {
+        return {
+          email: emEmail || emId, // 공용 계정 등 이메일이 비어있을 수 있어 fallback
+          name: emName || emId,
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching EM data (id/password):', error);
+    throw error;
+  }
+}
+
+/**
  * Google Sheets API 클라이언트를 생성합니다.
  */
 export function getGoogleSheetsClient() {
@@ -693,6 +794,7 @@ export interface RecruitmentLogData {
   declineReason?: string; // F열: 거절사유
   responseDateTime?: string; // G열: 응답일시
   eventId?: string; // H열: 이벤트ID
+  managerEmail?: string; // I열: 담당EM (옵션)
   requestMonth: string; // I열: 요청월
 }
 
@@ -1191,7 +1293,8 @@ export function extractCompanyName(className: string): string {
 export async function createRecruitmentRequest(
   requestId: string,
   schedules: ClassScheduleData[],
-  instructorName: string
+  instructorName: string,
+  담당EM: string
 ): Promise<{ acceptLink: string; declineLink: string }> {
   const sheets = getGoogleSheetsClient();
   const spreadsheetId = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
@@ -1199,7 +1302,7 @@ export async function createRecruitmentRequest(
 
   try {
     // GAS URL 생성
-    const gasBaseUrl = 'https://script.google.com/macros/s/AKfycbxCOSOaj77QvaxnkeZwLiwdEwkJin-vr0PwOyj8KbUnMa0nDvI4etVp6luudRCMem_o/exec';
+    const gasBaseUrl = 'https://script.google.com/macros/s/AKfycbyBIeSjPeq1X68uaR72wce9RTK5uwqOj2EE4LeX708eFHRzK2lWUSoAW6okb5Ggp4Di/exec';
     const acceptLink = `${gasBaseUrl}?action=accept&requestId=${requestId}`;
     const declineLink = `${gasBaseUrl}?action=decline&requestId=${requestId}`;
 
@@ -1212,7 +1315,8 @@ export async function createRecruitmentRequest(
     for (const schedule of schedules) {
       const companyName = extractCompanyName(schedule.className) || schedule.clientName;
       
-      // 시트 구조: 요청ID | 기업명 | 교육명 | 교육일 | 멘토명 | 상태 | 응답일 | 거절사유
+      // 시트 구조:
+      // 요청ID | 기업명 | 교육명 | 교육일 | 멘토명 | 상태 | 응답일 | 거절사유 | 담당EM | 요청월(옵션)
       values.push([
         requestId, // A열: 요청ID
         companyName, // B열: 기업명
@@ -1222,7 +1326,8 @@ export async function createRecruitmentRequest(
         'REQUESTED', // F열: 상태
         '', // G열: 응답일
         '', // H열: 거절사유
-        requestMonth, // I열: 요청월
+        담당EM || '', // I열: 담당EM
+        requestMonth, // J열: 요청월(옵션)
       ]);
     }
 
@@ -1266,7 +1371,8 @@ export async function getRecruitmentRequests(): Promise<RecruitmentLogData[]> {
     const requests: RecruitmentLogData[] = [];
 
     // 헤더 행을 제외하고 데이터 행만 처리
-    // 시트 구조: 요청ID | 기업명 | 교육명 | 교육일 | 멘토명 | 상태 | 응답일 | 거절사유
+    // 시트 구조:
+    // 요청ID | 기업명 | 교육명 | 교육일 | 멘토명 | 상태 | 응답일 | 거절사유 | 담당EM | 요청월(옵션)
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       
@@ -1278,7 +1384,11 @@ export async function getRecruitmentRequests(): Promise<RecruitmentLogData[]> {
       const status = (row[5] || '').trim().toUpperCase(); // F열: 상태
       const responseDate = (row[6] || '').trim(); // G열: 응답일
       const declineReason = (row[7] || '').trim(); // H열: 거절사유
-      const requestMonth = (row[8] || '').trim(); // I열: 요청월
+      const col8 = (row[8] || '').trim(); // I열: 담당EM(신규) 또는 요청월(구버전)
+      const col9 = (row[9] || '').trim(); // J열: 요청월(신규)
+      const isMonth = (v: string) => /^\d{4}-\d{2}$/.test(v);
+      const managerEmail = isMonth(col8) ? '' : col8;
+      const requestMonth = col9 || (isMonth(col8) ? col8 : '');
 
       // 요청ID가 있는 경우만 추가
       if (requestId) {
@@ -1290,6 +1400,7 @@ export async function getRecruitmentRequests(): Promise<RecruitmentLogData[]> {
           result: (status === 'APPROVED' || status === 'ACCEPTED' ? 'APPROVED' : status === 'DECLINED' ? 'DECLINED' : status === 'CANCELLED' ? 'CANCELLED' : 'REQUESTED') as 'APPROVED' | 'DECLINED' | 'CANCELLED' | 'REQUESTED',
           declineReason: declineReason || undefined,
           responseDateTime: responseDate || undefined,
+          managerEmail: managerEmail || undefined,
           requestMonth: requestMonth || '',
         });
       }

@@ -7,6 +7,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [loginType, setLoginType] = useState<'instructor' | 'em'>('instructor');
   const [name, setName] = useState('');
+  const [emId, setEmId] = useState('');
   const [email, setEmail] = useState('');
   const [pinCode, setPinCode] = useState('');
   const [error, setError] = useState('');
@@ -25,7 +26,8 @@ export default function LoginPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name,
+          name: loginType === 'em' ? undefined : name,
+          emId: loginType === 'em' ? emId : undefined,
           email: loginType === 'instructor' ? email : undefined,
           pinCode: pinCode || undefined,
           role: loginType === 'em' ? 'EM' : undefined,
@@ -53,9 +55,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
       <div className="w-full max-w-md px-6">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 overflow-hidden">
           {/* 헤더 */}
           <div className="px-8 pt-10 pb-6">
             <div className="text-center">
@@ -81,6 +83,7 @@ export default function LoginPage() {
                 onClick={() => {
                   setLoginType('instructor');
                   setError('');
+                  setEmId('');
                 }}
                 className={`relative flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-colors duration-200 z-10 ${
                   loginType === 'instructor'
@@ -95,6 +98,7 @@ export default function LoginPage() {
                 onClick={() => {
                   setLoginType('em');
                   setError('');
+                  setName('');
                 }}
                 className={`relative flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-colors duration-200 z-10 ${
                   loginType === 'em'
@@ -110,41 +114,41 @@ export default function LoginPage() {
           {/* 폼 */}
           <form className="px-8 pb-10" onSubmit={handleSubmit}>
             <div className="space-y-5">
-              {/* EM 로그인: 성함 입력 */}
+              {/* EM 로그인: 아이디 입력 */}
               {loginType === 'em' && (
                 <div>
                   <label
-                    htmlFor="name"
+                    htmlFor="emId"
                     className={`block text-sm font-medium mb-2 transition-colors ${
-                      focusedField === 'name'
+                      focusedField === 'emId'
                         ? 'text-gray-900'
                         : 'text-gray-700'
                     }`}
                   >
-                    성함
+                    아이디
                   </label>
                   <div className="relative">
                     <input
-                      id="name"
-                      name="name"
+                      id="emId"
+                      name="emId"
                       type="text"
                       required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      onFocus={() => setFocusedField('name')}
+                      value={emId}
+                      onChange={(e) => setEmId(e.target.value)}
+                      onFocus={() => setFocusedField('emId')}
                       onBlur={() => setFocusedField(null)}
                       className={`w-full px-4 py-3 border rounded-lg text-sm transition-all duration-200 focus:outline-none ${
-                        focusedField === 'name'
+                        focusedField === 'emId'
                           ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
                           : 'border-gray-300 focus:border-gray-900'
                       }`}
-                      placeholder=""
+                      placeholder="예) comento 또는 이창환"
                     />
                   </div>
                 </div>
               )}
 
-              {/* EM 로그인: 핀코드 입력 */}
+              {/* EM 로그인: 비밀번호 입력 */}
               {loginType === 'em' && (
                 <div>
                   <label
@@ -155,7 +159,7 @@ export default function LoginPage() {
                         : 'text-gray-700'
                     }`}
                   >
-                    핀코드
+                    비밀번호
                   </label>
                   <div className="relative">
                     <input
@@ -172,8 +176,8 @@ export default function LoginPage() {
                           ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
                           : 'border-gray-300 focus:border-gray-900'
                       }`}
-                      placeholder=""
-                      maxLength={20}
+                      placeholder="비밀번호를 입력하세요"
+                      maxLength={50}
                     />
                   </div>
                 </div>
@@ -260,10 +264,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className={`mt-6 w-full py-3 px-4 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
+              className={`mt-6 w-full py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
                 loading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gray-900 hover:bg-gray-800 active:scale-[0.98] shadow-lg hover:shadow-xl'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-800 text-white hover:bg-gray-700 active:scale-[0.98]'
               }`}
             >
               {loading ? (

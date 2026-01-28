@@ -6,6 +6,15 @@ import { getGoogleSheetsClient } from '@/lib/google-sheets';
 const PERSONAL_EVENTS_SPREADSHEET_ID = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
 const PERSONAL_EVENTS_SHEET_NAME = '강사일정';
 
+type PersonalEventType = '강의 선호' | '강의 불가';
+
+function normalizeType(rawType: string, fallbackFromSummary: string): PersonalEventType {
+  const t = (rawType || '').trim();
+  if (t === '강의 선호' || t === '강의 불가') return t;
+  // 하위호환: 기존 summary 기반 추론
+  return fallbackFromSummary.includes('선호') ? '강의 선호' : '강의 불가';
+}
+
 /**
  * GET: 강사의 개인 일정 조회
  */
@@ -39,14 +48,16 @@ export async function GET(request: NextRequest) {
       console.log('[개인 일정 API GET] 첫 5개 행:', rows.slice(0, 5));
 
       // 헤더 행을 제외하고 데이터 행만 처리
-      // 시트 구조: 강사이메일 | 일정이름 | 날짜
+      // 시트 구조: 강사이메일 | 일정이름 | 날짜 | 유형
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         const instructorEmail = (row[0] || '').trim();
         const summary = (row[1] || '').trim();
         const date = (row[2] || '').trim();
+        const rawType = (row[3] || '').trim();
+        const type = normalizeType(rawType, summary);
 
-        console.log(`[개인 일정 API GET] 행 ${i}: 이메일="${instructorEmail}", 일정="${summary}", 날짜="${date}"`);
+        console.log(`[개인 일정 API GET] 행 ${i}: 이메일="${instructorEmail}", 일정="${summary}", 날짜="${date}", 유형="${type}"`);
         console.log(`[개인 일정 API GET] 이메일 매칭: ${instructorEmail.toLowerCase()} === ${user.email.toLowerCase()} ? ${instructorEmail.toLowerCase() === user.email.toLowerCase()}`);
 
         if (instructorEmail.toLowerCase() === user.email.toLowerCase() && summary && date) {
@@ -54,8 +65,9 @@ export async function GET(request: NextRequest) {
             rowIndex: i + 1, // 1-based 행 번호 (헤더 포함)
             summary,
             date,
+            type,
           });
-          console.log(`[개인 일정 API GET] ✓ 일정 추가됨: ${summary} (${date})`);
+          console.log(`[개인 일정 API GET] ✓ 일정 추가됨: ${summary} (${date}) [${type}]`);
         }
       }
 
@@ -99,7 +111,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { rowIndex, summary, date } = body;
+    const { rowIndex, summary, date, type } = body;
 
     if (!rowIndex || !summary || !date) {
       return NextResponse.json(
@@ -107,23 +119,24 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
+    const eventType: PersonalEventType = normalizeType(String(type || ''), String(summary || ''));
 
     const sheets = getGoogleSheetsClient();
     
     try {
-      // 행 수정 (B열: 일정이름, C열: 날짜)
+      // 행 수정 (B열: 일정이름, C열: 날짜, D열: 유형)
       await sheets.spreadsheets.values.update({
         spreadsheetId: PERSONAL_EVENTS_SPREADSHEET_ID,
-        range: `${PERSONAL_EVENTS_SHEET_NAME}!B${rowIndex}:C${rowIndex}`,
+        range: `${PERSONAL_EVENTS_SHEET_NAME}!B${rowIndex}:D${rowIndex}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [[summary, date]],
+          values: [[summary, date, eventType]],
         },
       });
 
       return NextResponse.json({
         success: true,
-        message: '개인 일정이 수정되었습니다.',
+        message: `${eventType} 일정이 수정되었습니다.`,
       });
     } catch (error: any) {
       console.error('Error updating personal event:', error);
@@ -204,7 +217,7 @@ export async function DELETE(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: '개인 일정이 삭제되었습니다.',
+        message: '강의 불가 일정이 삭제되었습니다.',
       });
     } catch (error: any) {
       console.error('Error deleting personal event:', error);
@@ -248,9 +261,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { dates, summary, date } = body; // dates 배열 또는 단일 date 지원
+    const { dates, summary, date, type } = body; // dates 배열 또는 단일 date 지원
 
-    console.log('[개인 일정 API POST] 요청 데이터:', { dates, summary, date, userEmail: user.email });
+    console.log('[개인 일정 API POST] 요청 데이터:', { dates, summary, type, date, userEmail: user.email });
 
     // dates 배열이 있으면 사용, 없으면 단일 date 사용 (하위 호환성)
     const datesToAdd = dates || (date ? [date] : []);
@@ -263,8 +276,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // summary가 없으면 기본값 사용
-    const eventSummary = summary || '개인 일정';
+    // 유형/이름 처리 (하위 호환: 기존 summary로 유형 추론)
+    const eventType: PersonalEventType = normalizeType(String(type || ''), String(summary || ''));
+    const eventSummary = (summary || '').trim() || eventType;
 
     const sheets = getGoogleSheetsClient();
     
@@ -278,9 +292,10 @@ export async function POST(request: NextRequest) {
       try {
         const headerResponse = await sheets.spreadsheets.values.get({
           spreadsheetId: PERSONAL_EVENTS_SPREADSHEET_ID,
-          range: `${PERSONAL_EVENTS_SHEET_NAME}!A1:C1`,
+          range: `${PERSONAL_EVENTS_SHEET_NAME}!A1:D1`,
         });
-        hasHeader = !!(headerResponse.data.values && headerResponse.data.values.length > 0);
+        const headerRow = headerResponse.data.values?.[0] || [];
+        hasHeader = headerRow.length >= 4;
         console.log('[개인 일정 API POST] 헤더 존재 여부:', hasHeader);
       } catch (error: any) {
         console.log('[개인 일정 API POST] 헤더 확인 오류:', error.message);
@@ -290,24 +305,25 @@ export async function POST(request: NextRequest) {
       // 헤더가 없으면 추가
       if (!hasHeader) {
         console.log('[개인 일정 API POST] 헤더 추가 중...');
-        await sheets.spreadsheets.values.append({
+        // 기존 3열 헤더가 있을 수 있으니 update로 덮어씁니다.
+        await sheets.spreadsheets.values.update({
           spreadsheetId: PERSONAL_EVENTS_SPREADSHEET_ID,
-          range: `${PERSONAL_EVENTS_SHEET_NAME}!A1:C1`,
           valueInputOption: 'USER_ENTERED',
+          range: `${PERSONAL_EVENTS_SHEET_NAME}!A1:D1`,
           requestBody: {
-            values: [['강사이메일', '일정이름', '날짜']],
+            values: [['강사이메일', '일정이름', '날짜', '유형']],
           },
         });
         console.log('[개인 일정 API POST] 헤더 추가 완료');
       }
 
       // 여러 개인 일정 추가
-      const valuesToAdd = datesToAdd.map((date: string) => [user.email, eventSummary, date]);
+      const valuesToAdd = datesToAdd.map((d: string) => [user.email, eventSummary, d, eventType]);
       console.log('[개인 일정 API POST] 일정 추가 중...', { email: user.email, count: valuesToAdd.length, dates: datesToAdd });
       
       const appendResponse = await sheets.spreadsheets.values.append({
         spreadsheetId: PERSONAL_EVENTS_SPREADSHEET_ID,
-        range: `${PERSONAL_EVENTS_SHEET_NAME}!A:C`,
+        range: `${PERSONAL_EVENTS_SHEET_NAME}!A:D`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: valuesToAdd,
@@ -317,7 +333,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `${datesToAdd.length}개의 개인 일정이 추가되었습니다.`,
+        message: `${datesToAdd.length}개의 ${eventType} 일정이 추가되었습니다.`,
       });
     } catch (error: any) {
       // 시트가 없으면 생성 시도 (실제로는 수동으로 생성해야 할 수도 있음)

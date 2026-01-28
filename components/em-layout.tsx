@@ -13,7 +13,7 @@ interface User {
 
 export default function EMLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
@@ -59,9 +59,9 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-4 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
           <div className="text-gray-600">로딩 중...</div>
         </div>
       </div>
@@ -153,6 +153,15 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
         </svg>
       )
     },
+    { 
+      href: '/em/expense-reports', 
+      label: '지출결의서 관리',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      )
+    },
   ];
 
   return (
@@ -160,15 +169,15 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
       {/* 사이드바 */}
       <aside className="fixed left-0 top-0 w-56 bg-white border-r border-gray-200 h-screen overflow-y-auto z-20">
         {/* 로고 영역 */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">강사관리 LMS</h1>
+              <h1 className="text-lg font-semibold text-gray-800">강사관리 LMS</h1>
             </div>
           </div>
         </div>
@@ -190,16 +199,16 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
                       <button
                         onClick={() => toggleMenu(menuKey)}
                         className={`
-                          w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200
+                          w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200
                           ${
                             hasActiveChild
-                              ? 'bg-blue-50 text-blue-700 shadow-sm'
+                              ? 'bg-gray-100 text-gray-900 font-semibold'
                               : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                           }
                         `}
                       >
                         <div className="flex items-center gap-3">
-                          <span className={hasActiveChild ? 'text-blue-600' : 'text-gray-500'}>{item.icon}</span>
+                          <span className={hasActiveChild ? 'text-gray-700' : 'text-gray-500'}>{item.icon}</span>
                           <span>{item.label}</span>
                         </div>
                         <svg
@@ -223,7 +232,7 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
                                     block px-4 py-2.5 text-sm rounded-lg transition-all duration-200
                                     ${
                                       isActive
-                                        ? 'bg-blue-50 text-blue-700 font-medium shadow-sm'
+                                        ? 'bg-gray-100 text-gray-900 font-semibold'
                                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                     }
                                   `}
@@ -245,15 +254,15 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
                       <a
                         href={item.href}
                         className={`
-                          flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200
+                          flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200
                           ${
                             isActive
-                              ? 'bg-blue-50 text-blue-700 shadow-sm'
+                              ? 'bg-gray-100 text-gray-900 font-semibold'
                               : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                           }
                         `}
                       >
-                        <span className={isActive ? 'text-blue-600' : 'text-gray-500'}>{item.icon}</span>
+                        <span className={isActive ? 'text-gray-700' : 'text-gray-500'}>{item.icon}</span>
                         <span>{item.label}</span>
                       </a>
                     </li>
@@ -268,7 +277,7 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
       {/* 메인 콘텐츠 영역 */}
       <div className="ml-56 flex flex-col min-h-screen flex-1">
         {/* 헤더 */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <header className="bg-white border-b border-gray-200/60 sticky top-0 z-10">
           <div className="px-8 py-4 flex justify-between items-center">
             <div></div>
 
@@ -277,14 +286,14 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
               {/* 강사 섭외하기 버튼 */}
               <a
                 href="/em/recruitment/create"
-                className="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+                className="px-5 py-2.5 text-sm font-medium text-gray-800 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
               >
                 강사 섭외하기
               </a>
 
               {/* 프로필 */}
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold">
+                <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-white font-semibold">
                   {user?.user.name?.charAt(0) || 'U'}
                 </div>
                 <div className="hidden md:block">
@@ -306,7 +315,7 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* 콘텐츠 */}
-        <main className="flex-1 p-8 overflow-auto bg-gray-50">
+        <main className="flex-1 p-8 overflow-auto bg-[#fafafa]">
           {children}
         </main>
       </div>

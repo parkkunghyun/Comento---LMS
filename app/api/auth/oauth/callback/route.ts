@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTokenFromCode } from '@/lib/google-gmail-oauth';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * OAuth2 인증 콜백을 처리합니다.
  * 
@@ -72,9 +74,11 @@ export async function GET(request: NextRequest) {
       // return NextResponse.redirect('/em/request?oauth=success');
     });
   } catch (error: any) {
-    console.error('OAuth callback error:', error);
     return NextResponse.json(
-      { error: 'OAuth 인증 처리 중 오류가 발생했습니다.' },
+      {
+        error: 'OAuth 인증 처리 중 오류가 발생했습니다.',
+        details: error?.message || '알 수 없는 오류',
+      },
       { status: 500 }
     );
   }

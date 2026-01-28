@@ -58,8 +58,15 @@ export async function GET(request: NextRequest) {
         const email = (row[0] || '').trim();
         const summary = (row[1] || '').trim();
         const date = (row[2] || '').trim();
+        const rawType = (row[3] || '').trim();
 
         if (email.toLowerCase() === instructorEmail.toLowerCase() && summary && date) {
+          const type =
+            rawType === '강의 선호' || rawType === '강의 불가'
+              ? rawType
+              : summary.includes('선호')
+              ? '강의 선호'
+              : '강의 불가';
           // 날짜 파싱 (YYYY-MM-DD 형식)
           let dateObj: Date;
           if (date.includes('-')) {
@@ -77,7 +84,7 @@ export async function GET(request: NextRequest) {
           personalEvents.push({
             id: `personal-${date}-${summary}`,
             summary: summary,
-            description: '개인 일정',
+            description: type,
             start: {
               dateTime: `${year}-${month}-${day}T09:00:00+09:00`,
             },

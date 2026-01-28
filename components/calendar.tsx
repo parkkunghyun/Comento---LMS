@@ -27,12 +27,22 @@ interface CalendarEvent {
 interface CalendarProps {
   apiEndpoint: string; // '/api/instructor/calendar' 또는 '/api/em/calendar'
   title?: string; // 페이지 제목 (선택사항)
-  personalEventDates?: string[]; // 개인 일정 날짜 배열 (YYYY-MM-DD 형식)
+  personalEventDates?: string[]; // 강의 불가(개인 일정) 날짜 배열 (YYYY-MM-DD 형식)
+  preferredEventDates?: string[]; // 강의 선호 날짜 배열 (YYYY-MM-DD 형식)
   educationEventDates?: string[]; // 교육 일정 날짜 배열 (YYYY-MM-DD 형식) - 강사별 캘린더용
   filteredEvents?: CalendarEvent[]; // 필터링된 이벤트 목록 (강사 선택 시 사용)
+  variant?: 'default' | 'business'; // 색감/강조 방식
 }
 
-export default function Calendar({ apiEndpoint, title, personalEventDates = [], educationEventDates = [], filteredEvents }: CalendarProps) {
+export default function Calendar({
+  apiEndpoint,
+  title,
+  personalEventDates = [],
+  preferredEventDates = [],
+  educationEventDates = [],
+  filteredEvents,
+  variant = 'default',
+}: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -80,8 +90,9 @@ export default function Calendar({ apiEndpoint, title, personalEventDates = [], 
         console.log('[캘린더 컴포넌트] API 엔드포인트:', apiEndpoint);
         console.log('[캘린더 컴포넌트] 날짜 범위:', { timeMin, timeMax });
 
+        const separator = apiEndpoint.includes('?') ? '&' : '?';
         const response = await fetch(
-          `${apiEndpoint}?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
+          `${apiEndpoint}${separator}timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
         );
 
         console.log('[캘린더 컴포넌트] API 응답 상태:', response.status, response.ok);
@@ -97,8 +108,15 @@ export default function Calendar({ apiEndpoint, title, personalEventDates = [], 
         console.log('[캘린더 컴포넌트] 일정 개수:', data.events?.length || 0);
         
         const allEvents = data.events || [];
-        const personalEvents = allEvents.filter((e: any) => e.isPersonal || e.id?.startsWith('personal-') || e.description === '개인 일정');
-        const educationEvents = allEvents.filter((e: any) => !e.isPersonal && !e.id?.startsWith('personal-') && e.description !== '개인 일정');
+        const isPersonalEvent = (e: any) =>
+          e.isPersonal ||
+          e.id?.startsWith('personal-') ||
+          e.description === '개인 일정' ||
+          e.description === '강의 불가' ||
+          e.description === '강의 선호';
+
+        const personalEvents = allEvents.filter(isPersonalEvent);
+        const educationEvents = allEvents.filter((e: any) => !isPersonalEvent(e));
         
         console.log('[캘린더 컴포넌트] 전체 일정 개수:', allEvents.length);
         console.log('[캘린더 컴포넌트] 개인 일정 개수:', personalEvents.length);
@@ -195,13 +213,28 @@ export default function Calendar({ apiEndpoint, title, personalEventDates = [], 
   };
 
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+  const isBusiness = variant === 'business';
 
   return (
     <div className="flex gap-6">
       {/* 캘린더 */}
-      <div className="flex-[2] max-w-2xl bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="flex-[2] max-w-2xl bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">일정 캘린더</h3>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-sky-500" />
+              <span>기업교육</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-gray-900" />
+              <span>강의 불가</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-700" />
+              <span>강의 선호</span>
+            </div>
+          </div>
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={goToPreviousMonth}
@@ -235,7 +268,7 @@ export default function Calendar({ apiEndpoint, title, personalEventDates = [], 
                 <div
                   key={day}
                   className={`text-center text-sm font-medium py-2 ${
-                    index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-600'
+                    index === 0 ? 'text-red-500' : index === 6 ? 'text-gray-500' : 'text-gray-600'
                   }`}
                 >
                   {day}
@@ -268,13 +301,36 @@ export default function Calendar({ apiEndpoint, title, personalEventDates = [], 
                   return eventDate === dateStr;
                 });
                 const hasEvents = dayEvents.length > 0;
-                const hasPersonalEvents = dayEvents.some((event) => event.isPersonal || event.id?.startsWith('personal-') || event.description === '개인 일정');
+                const isPreferredEvent = (event: CalendarEvent) => {
+                  const desc = event.description || '';
+                  const sum = event.summary || '';
+                  return desc.includes('선호') || sum.includes('선호');
+                };
+                const isBlockedEvent = (event: CalendarEvent) => {
+                  const desc = event.description || '';
+                  const sum = event.summary || '';
+                  if (desc === '개인 일정' || desc.includes('불가') || sum.includes('불가')) return true;
+                  // 개인 일정인데 선호가 아니면 불가로 취급(하위 호환)
+                  if ((event.isPersonal || event.id?.startsWith('personal-')) && !isPreferredEvent(event)) {
+                    return true;
+                  }
+                  return false;
+                };
+                const hasBlockedEvents = dayEvents.some(isBlockedEvent);
+                const hasPreferredEvents = dayEvents.some(isPreferredEvent);
                 const hasEducationEvents = dayEvents.some((event) => {
-                  const isPersonal = event.isPersonal || event.id?.startsWith('personal-') || event.description === '개인 일정';
+                  const isPersonal =
+                    event.isPersonal ||
+                    event.id?.startsWith('personal-') ||
+                    event.description === '개인 일정' ||
+                    event.description === '강의 불가' ||
+                    event.description === '강의 선호';
                   return !isPersonal;
                 });
-                // 개인 일정 날짜 확인 (props로 전달된 날짜 또는 events에서 확인)
-                const hasPersonalDate = personalEventDates.includes(dateStr) || hasPersonalEvents;
+                // 강의 불가 날짜 확인 (props로 전달된 날짜 또는 events에서 확인)
+                const hasBlockedDate = personalEventDates.includes(dateStr) || hasBlockedEvents;
+                // 강의 선호 날짜 확인 (props로 전달된 날짜 또는 events에서 확인)
+                const hasPreferredDate = preferredEventDates.includes(dateStr) || hasPreferredEvents;
                 // 교육 일정 날짜 확인 (props로 전달된 날짜 또는 events에서 확인)
                 const hasEducationDate = educationEventDates.includes(dateStr) || hasEducationEvents;
 
@@ -286,22 +342,39 @@ export default function Calendar({ apiEndpoint, title, personalEventDates = [], 
                       aspect-square flex flex-col items-center justify-center
                       rounded-lg transition-all duration-200 relative
                       ${!isCurrentMonth ? 'text-gray-300' : 'text-gray-700'}
-                      ${isToday && !isSelected && !hasEvents && !hasEducationDate && !hasPersonalDate
-                        ? 'bg-blue-50 border-2 border-blue-400 font-semibold' 
+                      ${isToday && !isSelected && !hasEvents && !hasEducationDate && !hasBlockedDate && !hasPreferredDate
+                        ? 'bg-gray-50 border-2 border-gray-300 font-semibold'
                         : ''}
-                      ${isSelected 
-                        ? 'bg-blue-600 text-white shadow-md scale-105' 
+                      ${isSelected
+                        ? 'bg-gray-800 text-white shadow-sm scale-105'
                         : ''}
-                      ${hasPersonalDate && !isSelected && isCurrentMonth
-                        ? 'bg-orange-100 hover:bg-orange-200' 
+                      ${hasBlockedDate && !isSelected && isCurrentMonth
+                        ? 'bg-gray-300 hover:bg-gray-400'
                         : ''}
-                      ${hasEducationDate && !hasPersonalDate && !isSelected && !isToday && isCurrentMonth
-                        ? 'bg-blue-50 hover:bg-blue-100' 
-                        : ''}
-                      ${hasEducationDate && hasPersonalDate && !isSelected && isCurrentMonth
-                        ? 'bg-gradient-to-br from-orange-100 to-blue-50 hover:from-orange-200 hover:to-blue-100' 
-                        : ''}
-                      ${!hasEvents && !hasEducationDate && !hasPersonalDate && !isSelected && !isToday
+                      ${
+                        hasEducationDate &&
+                        !hasBlockedDate &&
+                        !isSelected &&
+                        !isToday &&
+                        isCurrentMonth
+                          ? isBusiness
+                            ? 'bg-sky-50 hover:bg-sky-100'
+                            : 'bg-sky-100 hover:bg-sky-200'
+                          : ''
+                      }
+                      ${
+                        hasPreferredDate &&
+                        !hasBlockedDate &&
+                        !hasEducationDate &&
+                        !isSelected &&
+                        !isToday &&
+                        isCurrentMonth
+                          ? isBusiness
+                            ? 'bg-emerald-400 hover:bg-emerald-500'
+                            : 'bg-emerald-300 hover:bg-emerald-400'
+                          : ''
+                      }
+                      ${!hasEvents && !hasEducationDate && !hasBlockedDate && !hasPreferredDate && !isSelected && !isToday
                         ? 'hover:bg-gray-50' 
                         : ''}
                     `}
@@ -309,51 +382,18 @@ export default function Calendar({ apiEndpoint, title, personalEventDates = [], 
                     <span className={`text-sm font-medium ${isSelected ? 'text-white' : ''}`}>
                       {date.getDate()}
                     </span>
-                    {/* 개인 일정 표시 (주황색 점) */}
-                    {(hasPersonalDate || hasPersonalEvents) && isCurrentMonth && (
-                      <div className={`
-                        absolute bottom-2 left-1/2 transform -translate-x-1/2
-                        w-1.5 h-1.5 rounded-full transition-all duration-200
-                        ${isSelected 
-                          ? 'bg-orange-200 shadow-md' 
-                          : isToday
-                          ? 'bg-orange-500'
-                          : 'bg-orange-400'
-                        }
-                      `} />
-                    )}
-                    {/* 강의 일정 표시 (파란색 점) */}
-                    {(hasEducationDate || hasEducationEvents) && !hasPersonalDate && !hasPersonalEvents && isCurrentMonth && (
-                      <div className={`
-                        absolute bottom-2 left-1/2 transform -translate-x-1/2
-                        w-2 h-2 rounded-full
-                        ${isSelected 
-                          ? 'bg-white shadow-md' 
-                          : 'bg-blue-500 shadow-sm'
-                        }
-                      `} />
-                    )}
-                    {/* 둘 다 있는 경우 (두 개의 점) */}
-                    {(hasPersonalDate || hasPersonalEvents) && (hasEducationDate || hasEducationEvents) && isCurrentMonth && (
-                      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-0.5 items-center justify-center">
-                        <div className={`
-                          w-1.5 h-1.5 rounded-full transition-all duration-200
-                          ${isSelected 
-                            ? 'bg-orange-200 shadow-md' 
-                            : isToday
-                            ? 'bg-orange-500'
-                            : 'bg-orange-400'
-                          }
-                        `} />
-                        <div className={`
-                          w-1.5 h-1.5 rounded-full transition-all duration-200
-                          ${isSelected 
-                            ? 'bg-white shadow-md' 
-                            : isToday
-                            ? 'bg-blue-600'
-                            : 'bg-blue-500'
-                          }
-                        `} />
+                    {/* 하단 점 표시 (기업교육/불가/선호) */}
+                    {(hasEducationDate || hasBlockedDate || hasPreferredDate || hasEducationEvents || hasBlockedEvents || hasPreferredEvents) && isCurrentMonth && (
+                      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 items-center justify-center">
+                        {(hasEducationDate || hasEducationEvents) && (
+                          <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-sky-500'}`} />
+                        )}
+                        {(hasPreferredDate || hasPreferredEvents) && (
+                          <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-700'}`} />
+                        )}
+                        {(hasBlockedDate || hasBlockedEvents) && (
+                          <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-gray-900'}`} />
+                        )}
                       </div>
                     )}
                   </button>
@@ -365,7 +405,7 @@ export default function Calendar({ apiEndpoint, title, personalEventDates = [], 
       </div>
 
       {/* 선택된 날짜 상세 정보 */}
-      <div className="flex-1 min-w-[400px] bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="flex-1 min-w-[400px] bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
         {selectedDate ? (
           <>
             <h3 className="text-xl font-semibold text-gray-900 mb-1">
@@ -385,27 +425,31 @@ export default function Calendar({ apiEndpoint, title, personalEventDates = [], 
             ) : (
               <div className="space-y-3">
                 {selectedDateEvents.map((event) => {
-                  const isPersonal = event.isPersonal || event.id?.startsWith('personal-') || event.description === '개인 일정';
+                  const isPersonal =
+                    event.isPersonal ||
+                    event.id?.startsWith('personal-') ||
+                    event.description === '개인 일정' ||
+                    event.description === '강의 불가' ||
+                    event.description === '강의 선호';
+                  const isPreferred = event.description === '강의 선호';
                   return (
                     <div
                       key={event.id}
                       className={`border rounded-lg p-5 hover:shadow-sm transition-all ${
                         isPersonal
-                          ? 'bg-gradient-to-br from-orange-50 via-amber-50/50 to-yellow-50/30 border-orange-200/50'
-                          : 'border-gray-200 bg-white hover:border-blue-300'
+                          ? 'bg-gray-50 border-gray-200'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        {isPersonal && (
-                          <span className="px-2 py-0.5 bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 text-xs font-bold rounded-lg border border-orange-200">
-                            개인 일정
-                          </span>
-                        )}
-                        {!isPersonal && (
-                          <span className="px-2 py-0.5 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 text-xs font-bold rounded-lg border border-blue-200">
-                            강의 일정
-                          </span>
-                        )}
+                        <span className="inline-flex items-center gap-2 px-2 py-0.5 bg-white text-xs font-semibold rounded-lg border border-gray-200 text-gray-800">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              !isPersonal ? 'bg-sky-500' : isPreferred ? 'bg-emerald-600' : 'bg-gray-800'
+                            }`}
+                          />
+                          {!isPersonal ? '기업교육' : isPreferred ? '강의 선호' : '강의 불가'}
+                        </span>
                       </div>
                       <h4 className="font-semibold text-gray-900 mb-3 text-base">{event.summary}</h4>
                     {event.start.dateTime && (

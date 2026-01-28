@@ -15,7 +15,7 @@ interface User {
 
 export default function InstructorLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,15 +52,16 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
     { href: '/instructor', label: '캘린더' },
     { href: '/instructor/feedback', label: '피드백' },
     { href: '/instructor/settlement', label: '정산' },
+    { href: '/instructor/expense-report', label: '지출결의서 작성' },
     { href: '/instructor/reset-pin', label: '핀코드 재설정' },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-[#fafafa] flex">
       {/* 사이드바 */}
-      <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">강사관리 LMS</h1>
+      <aside className="w-64 bg-white border-r border-gray-200/60 min-h-screen">
+        <div className="p-6 border-b border-gray-200/60">
+          <h1 className="text-xl font-semibold text-gray-800 tracking-tight">강사관리 LMS</h1>
         </div>
         <nav className="p-4">
           <ul className="space-y-1">
@@ -71,11 +72,11 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
                   <a
                     href={item.href}
                     className={`
-                      block px-4 py-2.5 text-sm font-medium rounded-md transition-all
+                      block px-4 py-2.5 text-sm font-medium rounded-lg transition-all
                       ${
                         isActive
-                          ? 'bg-gray-900 text-white'
-                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                          ? 'bg-gray-100 text-gray-900 font-semibold'
+                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }
                     `}
                   >
@@ -91,16 +92,16 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
       {/* 메인 콘텐츠 영역 */}
       <div className="flex-1 flex flex-col">
         {/* 헤더 */}
-        <header className="bg-white border-b border-gray-200">
+        <header className="bg-white border-b border-gray-200/60">
           <div className="px-6 py-4 flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <h2 className="text-lg font-medium text-gray-900">강사 섭외 관리</h2>
+              <h2 className="text-lg font-medium text-gray-800">강사 섭외 관리</h2>
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600">{user?.user.name}</span>
               <button
                 onClick={handleLogout}
-                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
               >
                 로그아웃
               </button>
@@ -109,7 +110,7 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
         </header>
 
         {/* 콘텐츠 */}
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-6 overflow-auto bg-[#fafafa]">
           {children}
         </main>
       </div>

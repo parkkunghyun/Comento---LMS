@@ -7,25 +7,27 @@ import { AuthUser } from '@/types/auth';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, pinCode, role } = body;
+    const { name, emId, email, pinCode, role } = body;
 
     let authUser: AuthUser | null = null;
 
     // 역할별 인증 처리
     if (role === 'EM') {
-      // EM 인증: 성함과 핀코드 필요
-      if (!name || !pinCode) {
+      // EM 인증: 아이디와 비밀번호 필요 (하위 호환: name에 아이디가 들어오는 경우도 허용)
+      const loginId = (emId || name || '').toString().trim();
+      if (!loginId || !pinCode) {
         return NextResponse.json(
-          { error: '성함과 핀코드를 모두 입력해주세요.' },
+          { error: '아이디와 비밀번호를 모두 입력해주세요.' },
           { status: 400 }
         );
       }
 
-      if (verifyEMCredentials(name, pinCode)) {
+      const emInfo = await verifyEMCredentials(loginId, pinCode);
+      if (emInfo) {
         authUser = {
           role: 'EM',
-          name,
-          email: 'comento@comento.co.kr', // EM은 이메일이 없으므로 기본값 사용
+          name: emInfo.name,
+          email: emInfo.email,
         };
       }
     } else {

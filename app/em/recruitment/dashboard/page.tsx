@@ -162,7 +162,7 @@ export default function RecruitmentDashboardPage() {
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as 'thisMonth' | 'last3Months' | 'year2026')}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400"
             >
               <option value="thisMonth">이번달</option>
               <option value="last3Months">최근 3개월</option>
@@ -196,8 +196,8 @@ export default function RecruitmentDashboardPage() {
               </svg>
             </div>
           </div>
-          <div className="text-3xl font-bold text-green-600 mb-1">{data.thisMonth.approved}</div>
-          <div className="text-xs text-gray-400">{approvalRate}% 수락율</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{data.thisMonth.approved}</div>
+          <div className="text-xs text-gray-500">{approvalRate}% 수락율</div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-5">
@@ -209,8 +209,8 @@ export default function RecruitmentDashboardPage() {
               </svg>
             </div>
           </div>
-          <div className="text-3xl font-bold text-red-600 mb-1">{data.thisMonth.declined}</div>
-          <div className="text-xs text-gray-400">{data.thisMonth.declineRate}% 거절율</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{data.thisMonth.declined}</div>
+          <div className="text-xs text-gray-500">{data.thisMonth.declineRate}% 거절율</div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-5">
@@ -222,8 +222,8 @@ export default function RecruitmentDashboardPage() {
               </svg>
             </div>
           </div>
-          <div className="text-3xl font-bold text-blue-600 mb-1">{approvalRate}%</div>
-          <div className="text-xs text-gray-400">전체 대비</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{approvalRate}%</div>
+          <div className="text-xs text-gray-500">전체 대비</div>
         </div>
       </div>
 
@@ -241,21 +241,10 @@ export default function RecruitmentDashboardPage() {
             >
               <defs>
                 <linearGradient id="classCountGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#60a5fa" stopOpacity={1} />
-                  <stop offset="50%" stopColor="#3b82f6" stopOpacity={0.95} />
-                  <stop offset="100%" stopColor="#2563eb" stopOpacity={0.85} />
+                  <stop offset="0%" stopColor="#93c5fd" stopOpacity={0.8} />
+                  <stop offset="50%" stopColor="#60a5fa" stopOpacity={0.7} />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.6} />
                 </linearGradient>
-                <filter id="barShadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur in="SourceAlpha" stdDeviation="4" />
-                  <feOffset dx="0" dy="4" result="offsetblur" />
-                  <feComponentTransfer>
-                    <feFuncA type="linear" slope="0.3" />
-                  </feComponentTransfer>
-                  <feMerge>
-                    <feMergeNode />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
               <XAxis 
@@ -283,14 +272,13 @@ export default function RecruitmentDashboardPage() {
                   padding: '8px 12px',
                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                 }}
-                cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                cursor={{ fill: 'rgba(59, 130, 246, 0.06)' }}
               />
               <Bar 
                 dataKey="count" 
                 fill="url(#classCountGradient)"
                 radius={[10, 10, 0, 0]}
                 name="강의 횟수"
-                style={{ filter: 'url(#barShadow)' }}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -313,21 +301,10 @@ export default function RecruitmentDashboardPage() {
               >
                 <defs>
                   <linearGradient id="approvalRateGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#a78bfa" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#9333ea" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#7e22ce" stopOpacity={0.85} />
+                    <stop offset="0%" stopColor="#ddd6fe" stopOpacity={0.8} />
+                    <stop offset="50%" stopColor="#c4b5fd" stopOpacity={0.7} />
+                    <stop offset="100%" stopColor="#a78bfa" stopOpacity={0.6} />
                   </linearGradient>
-                  <filter id="approvalBarShadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur in="SourceAlpha" stdDeviation="4" />
-                    <feOffset dx="0" dy="4" result="offsetblur" />
-                    <feComponentTransfer>
-                      <feFuncA type="linear" slope="0.3" />
-                    </feComponentTransfer>
-                    <feMerge>
-                      <feMergeNode />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis 
@@ -360,14 +337,13 @@ export default function RecruitmentDashboardPage() {
                     padding: '8px 12px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                   }}
-                  cursor={{ fill: 'rgba(147, 51, 234, 0.1)' }}
+                  cursor={{ fill: 'rgba(167, 139, 250, 0.08)' }}
                 />
                 <Bar 
                   dataKey="rate" 
                   fill="url(#approvalRateGradient)"
                   radius={[10, 10, 0, 0]}
                   name="수락율"
-                  style={{ filter: 'url(#approvalBarShadow)' }}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -388,21 +364,10 @@ export default function RecruitmentDashboardPage() {
               >
                 <defs>
                   <linearGradient id="declineRateGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#fda4af" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#fca5a5" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#f87171" stopOpacity={0.85} />
+                    <stop offset="0%" stopColor="#fecaca" stopOpacity={0.8} />
+                    <stop offset="50%" stopColor="#fda4af" stopOpacity={0.7} />
+                    <stop offset="100%" stopColor="#fb7185" stopOpacity={0.6} />
                   </linearGradient>
-                  <filter id="declineBarShadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur in="SourceAlpha" stdDeviation="4" />
-                    <feOffset dx="0" dy="4" result="offsetblur" />
-                    <feComponentTransfer>
-                      <feFuncA type="linear" slope="0.3" />
-                    </feComponentTransfer>
-                    <feMerge>
-                      <feMergeNode />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis 
@@ -435,14 +400,13 @@ export default function RecruitmentDashboardPage() {
                     padding: '8px 12px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                   }}
-                  cursor={{ fill: 'rgba(252, 165, 165, 0.1)' }}
+                  cursor={{ fill: 'rgba(251, 113, 133, 0.08)' }}
                 />
                 <Bar 
                   dataKey="rate" 
                   fill="url(#declineRateGradient)"
                   radius={[10, 10, 0, 0]}
                   name="거절율"
-                  style={{ filter: 'url(#declineBarShadow)' }}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -481,17 +445,17 @@ export default function RecruitmentDashboardPage() {
                 <Line
                   type="monotone"
                   dataKey="수락"
-                  stroke="#059669"
+                  stroke="#34d399"
                   strokeWidth={2}
-                  dot={{ fill: '#059669', r: 3 }}
+                  dot={{ fill: '#34d399', r: 3 }}
                 />
                 <Line
                   type="monotone"
                   dataKey="거절"
-                  stroke="#dc2626"
+                  stroke="#fb7185"
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  dot={{ fill: '#dc2626', r: 3 }}
+                  dot={{ fill: '#fb7185', r: 3 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -518,21 +482,10 @@ export default function RecruitmentDashboardPage() {
               <BarChart data={declineReasonData} layout="vertical" margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                 <defs>
                   <linearGradient id="declineReasonGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#dc2626" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#b91c1c" stopOpacity={0.85} />
+                    <stop offset="0%" stopColor="#fecaca" stopOpacity={0.8} />
+                    <stop offset="50%" stopColor="#fda4af" stopOpacity={0.7} />
+                    <stop offset="100%" stopColor="#fb7185" stopOpacity={0.6} />
                   </linearGradient>
-                  <filter id="declineReasonBarShadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur in="SourceAlpha" stdDeviation="4" />
-                    <feOffset dx="4" dy="0" result="offsetblur" />
-                    <feComponentTransfer>
-                      <feFuncA type="linear" slope="0.3" />
-                    </feComponentTransfer>
-                    <feMerge>
-                      <feMergeNode />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis type="number" stroke="#6b7280" fontSize={12} />
@@ -547,13 +500,12 @@ export default function RecruitmentDashboardPage() {
                     padding: '8px 12px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                   }}
-                  cursor={{ fill: 'rgba(220, 38, 38, 0.1)' }}
+                  cursor={{ fill: 'rgba(251, 113, 133, 0.08)' }}
                 />
                 <Bar 
                   dataKey="count" 
                   fill="url(#declineReasonGradient)" 
                   radius={[0, 10, 10, 0]}
-                  style={{ filter: 'url(#declineReasonBarShadow)' }}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -569,8 +521,8 @@ export default function RecruitmentDashboardPage() {
       </div>
 
       {/* 강사별 현황 */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-lg">
-        <div className="p-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="p-5 border-b border-gray-200 bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-900">강사별 현황</h2>
         </div>
         <div className="divide-y divide-gray-100">
@@ -587,11 +539,7 @@ export default function RecruitmentDashboardPage() {
               return (
                 <div 
                   key={instructor.name} 
-                  className={`transition-all duration-300 ${
-                    isExpanded 
-                      ? 'bg-gradient-to-br from-blue-50/30 to-purple-50/30 shadow-inner' 
-                      : 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/20'
-                  }`}
+                  className={`transition-colors ${isExpanded ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
                 >
                   <button
                     onClick={() => toggleInstructor(instructor.name)}
@@ -600,16 +548,16 @@ export default function RecruitmentDashboardPage() {
                     <div className="flex-1">
                       <div className="font-semibold text-gray-900 mb-2 text-base">{instructor.name}</div>
                       <div className="flex items-center gap-4 text-xs text-gray-600">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-md font-medium">
+                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium border border-blue-100">
                           최근 3개월 {instructor.last3Months.total}건
                         </span>
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-md font-medium">
+                        <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md font-medium border border-emerald-100">
                           수락 {instructor.last3Months.approved}건
                         </span>
-                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded-md font-medium">
+                        <span className="px-2 py-1 bg-rose-50 text-rose-700 rounded-md font-medium border border-rose-100">
                           거절 {instructor.last3Months.declined}건
                         </span>
-                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-md font-medium">
+                        <span className="px-2 py-1 bg-violet-50 text-violet-700 rounded-md font-medium border border-violet-100">
                           수락율 {instructor.last3Months.total > 0 
                             ? Math.round((instructor.last3Months.approved / instructor.last3Months.total) * 100) 
                             : 0}%
@@ -618,7 +566,7 @@ export default function RecruitmentDashboardPage() {
                     </div>
                     <div className={`ml-4 p-2 rounded-full transition-all duration-300 ${
                       isExpanded 
-                        ? 'bg-blue-100 text-blue-600 rotate-180' 
+                        ? 'bg-gray-200 text-gray-900 rotate-180' 
                         : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                     }`}>
                       <svg
@@ -635,7 +583,7 @@ export default function RecruitmentDashboardPage() {
                   {isExpanded && (
                     <div className="px-5 py-5 border-t border-gray-200">
                       {/* 월별 추이 그래프 */}
-                      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-5 shadow-md">
+                      <div className="bg-white rounded-lg border border-gray-200 p-5 mb-5 shadow-sm">
                         <h4 className="text-sm font-semibold text-gray-900 mb-4">월별 섭외 추이</h4>
                         {instructor.monthlyTrends && instructor.monthlyTrends.length > 0 ? (
                           <ResponsiveContainer width="100%" height={220}>
@@ -649,24 +597,13 @@ export default function RecruitmentDashboardPage() {
                             >
                               <defs>
                                 <linearGradient id={`approvedGradient-${instructor.name}`} x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="0%" stopColor="#a78bfa" stopOpacity={1} />
-                                  <stop offset="100%" stopColor="#9333ea" stopOpacity={0.85} />
+                                  <stop offset="0%" stopColor="#ddd6fe" stopOpacity={0.8} />
+                                  <stop offset="100%" stopColor="#c4b5fd" stopOpacity={0.65} />
                                 </linearGradient>
                                 <linearGradient id={`declinedGradient-${instructor.name}`} x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="0%" stopColor="#fda4af" stopOpacity={1} />
-                                  <stop offset="100%" stopColor="#fca5a5" stopOpacity={0.85} />
+                                  <stop offset="0%" stopColor="#fecaca" stopOpacity={0.8} />
+                                  <stop offset="100%" stopColor="#fda4af" stopOpacity={0.65} />
                                 </linearGradient>
-                                <filter id={`barShadow-${instructor.name}`} x="-50%" y="-50%" width="200%" height="200%">
-                                  <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
-                                  <feOffset dx="0" dy="3" result="offsetblur" />
-                                  <feComponentTransfer>
-                                    <feFuncA type="linear" slope="0.25" />
-                                  </feComponentTransfer>
-                                  <feMerge>
-                                    <feMergeNode />
-                                    <feMergeNode in="SourceGraphic" />
-                                  </feMerge>
-                                </filter>
                               </defs>
                               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                               <XAxis 
@@ -706,14 +643,12 @@ export default function RecruitmentDashboardPage() {
                                 fill={`url(#approvedGradient-${instructor.name})`}
                                 radius={[8, 8, 0, 0]}
                                 name="수락"
-                                style={{ filter: `url(#barShadow-${instructor.name})` }}
                               />
                               <Bar 
                                 dataKey="거절" 
                                 fill={`url(#declinedGradient-${instructor.name})`}
                                 radius={[8, 8, 0, 0]}
                                 name="거절"
-                                style={{ filter: `url(#barShadow-${instructor.name})` }}
                               />
                             </BarChart>
                           </ResponsiveContainer>
@@ -725,9 +660,9 @@ export default function RecruitmentDashboardPage() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-5 mb-5">
-                        <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-xl border border-gray-200 p-5 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <div className="bg-white rounded-lg border border-gray-200 p-5">
                           <div className="text-xs font-semibold text-gray-600 mb-4 uppercase tracking-wide flex items-center gap-2">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
                             {data.periodLabel}
                           </div>
                           <div className="space-y-3">
@@ -737,18 +672,18 @@ export default function RecruitmentDashboardPage() {
                             </div>
                             <div className="flex items-center justify-between pb-3 border-b border-gray-200">
                               <span className="text-sm font-medium text-gray-700">수락</span>
-                              <span className="text-xl font-bold text-green-600">{instructor.thisMonth.approved}건</span>
+                              <span className="text-xl font-bold text-gray-900">{instructor.thisMonth.approved}건</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">거절</span>
-                              <span className="text-xl font-bold text-red-600">{instructor.thisMonth.declined}건</span>
+                              <span className="text-xl font-bold text-gray-900">{instructor.thisMonth.declined}건</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="bg-gradient-to-br from-white to-purple-50/30 rounded-xl border border-gray-200 p-5 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <div className="bg-white rounded-lg border border-gray-200 p-5">
                           <div className="text-xs font-semibold text-gray-600 mb-4 uppercase tracking-wide flex items-center gap-2">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <div className="w-2 h-2 bg-violet-400 rounded-full"></div>
                             최근 3개월
                           </div>
                           <div className="space-y-3">
@@ -760,7 +695,7 @@ export default function RecruitmentDashboardPage() {
                             </div>
                             <div className="flex items-center justify-between pb-3 border-b border-gray-200">
                               <span className="text-sm font-medium text-gray-700">평균 수락율</span>
-                              <span className="text-xl font-bold text-blue-600">
+                              <span className="text-xl font-bold text-gray-900">
                                 {instructor.last3Months.total > 0
                                   ? Math.round((instructor.last3Months.approved / instructor.last3Months.total) * 100)
                                   : 0}%
@@ -776,7 +711,7 @@ export default function RecruitmentDashboardPage() {
 
                       {/* 거절 사유 */}
                       {instructor.declineReasons.length > 0 && (
-                        <div className="bg-gradient-to-br from-white to-red-50/20 rounded-xl border border-gray-200 p-5 mb-5 shadow-md">
+                        <div className="bg-gray-50 rounded-lg border border-gray-200 p-5 mb-5">
                           <div className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
                             <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -787,7 +722,7 @@ export default function RecruitmentDashboardPage() {
                             {instructor.declineReasons.map((decline, idx) => (
                               <div 
                                 key={idx} 
-                                className="border-l-4 border-red-400 pl-4 py-2 bg-white/60 rounded-r-lg shadow-sm hover:shadow-md transition-shadow"
+                                className="border border-gray-200 border-l-4 border-l-rose-300 pl-4 py-2 bg-white rounded-r-lg"
                               >
                                 <div className="text-sm font-semibold text-gray-900 mb-1">{decline.educationName}</div>
                                 <div className="text-xs text-gray-500 mb-2 flex items-center gap-2">
@@ -805,14 +740,14 @@ export default function RecruitmentDashboardPage() {
                       <div className="mt-5 flex gap-3">
                         <button
                           onClick={() => handleContactInstructor(instructor.name)}
-                          className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md hover:shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105"
+                          className="px-4 py-2 text-sm font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
                         >
                           응답 관리
                         </button>
                         {instructor.thisMonth.declined > 0 && (
                           <button
                             onClick={() => router.push(`/em/recruitment/create?instructor=${encodeURIComponent(instructor.name)}`)}
-                            className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg shadow-md hover:shadow-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105"
+                            className="px-4 py-2 text-sm font-semibold text-gray-800 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors"
                           >
                             재섭외
                           </button>

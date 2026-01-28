@@ -5,6 +5,15 @@ import { UserRole, AuthUser, JWTPayload } from '@/types/auth';
 const secretKey = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const encodedKey = new TextEncoder().encode(secretKey);
 
+function tryGetCookieStore() {
+  try {
+    return cookies();
+  } catch {
+    // 빌드 시(static generation) 또는 요청 컨텍스트가 없는 경우 cookies()가 예외를 던질 수 있음
+    return null;
+  }
+}
+
 /**
  * JWT 토큰을 생성합니다.
  */
@@ -38,8 +47,8 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
  * 쿠키에서 인증 토큰을 가져옵니다.
  */
 export async function getAuthToken(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token');
+  const cookieStore = tryGetCookieStore();
+  const token = cookieStore?.get('auth-token');
   return token?.value || null;
 }
 
@@ -68,7 +77,9 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
  * 인증 토큰을 쿠키에 저장합니다.
  */
 export async function setAuthToken(token: string) {
-  const cookieStore = await cookies();
+  const cookieStore = tryGetCookieStore();
+  if (!cookieStore) return;
+
   cookieStore.set('auth-token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -82,7 +93,8 @@ export async function setAuthToken(token: string) {
  * 인증 토큰을 삭제합니다.
  */
 export async function removeAuthToken() {
-  const cookieStore = await cookies();
+  const cookieStore = tryGetCookieStore();
+  if (!cookieStore) return;
   cookieStore.delete('auth-token');
 }
 

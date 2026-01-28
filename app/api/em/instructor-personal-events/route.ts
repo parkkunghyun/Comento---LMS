@@ -6,6 +6,13 @@ import { getGoogleSheetsClient } from '@/lib/google-sheets';
 const PERSONAL_EVENTS_SPREADSHEET_ID = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
 const PERSONAL_EVENTS_SHEET_NAME = '강사일정';
 
+type PersonalEventType = '강의 선호' | '강의 불가';
+function normalizeType(rawType: string, fallbackFromSummary: string): PersonalEventType {
+  const t = (rawType || '').trim();
+  if (t === '강의 선호' || t === '강의 불가') return t;
+  return fallbackFromSummary.includes('선호') ? '강의 선호' : '강의 불가';
+}
+
 /**
  * POST: EM이 특정 강사의 개인 일정 조회
  */
@@ -41,17 +48,20 @@ export async function POST(request: NextRequest) {
       const personalEvents = [];
 
       // 헤더 행을 제외하고 데이터 행만 처리
-      // 시트 구조: 강사이메일 | 일정이름 | 날짜
+      // 시트 구조: 강사이메일 | 일정이름 | 날짜 | 유형
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         const email = (row[0] || '').trim();
         const summary = (row[1] || '').trim();
         const date = (row[2] || '').trim();
+        const rawType = (row[3] || '').trim();
+        const type = normalizeType(rawType, summary);
 
         if (email.toLowerCase() === instructorEmail.toLowerCase() && summary && date) {
           personalEvents.push({
             summary,
             date,
+            type,
           });
         }
       }

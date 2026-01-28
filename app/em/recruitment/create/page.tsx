@@ -328,22 +328,22 @@ ${declineLink}
   return (
     <div className="space-y-6 pb-8">
       {/* 헤더 */}
-      <div className="bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 rounded-2xl shadow-lg border border-gray-200/50 p-8 backdrop-blur-sm">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+          <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center">
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">섭외 요청 생성</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">섭외 요청 생성</h1>
             <p className="text-gray-600 text-sm">교육 일정을 선택하고 멘토(외부 강사)를 지정하여 섭외 요청을 생성하세요</p>
           </div>
         </div>
       </div>
 
       {/* 검색 및 필터 */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-300">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
@@ -358,7 +358,7 @@ ${declineLink}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="고객사명을 입력하세요"
-                className="w-full pl-11 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white shadow-sm hover:shadow-md"
+                className="w-full pl-11 pr-4 py-3.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all bg-white"
               />
               <svg className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -383,7 +383,7 @@ ${declineLink}
                   setSelectedInstructorEmail('');
                 }
               }}
-              className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all appearance-none bg-white shadow-sm hover:shadow-md cursor-pointer"
+              className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all appearance-none bg-white cursor-pointer"
             >
               <option value="">선택하세요</option>
               {instructors.map((instructor) => (
@@ -398,19 +398,19 @@ ${declineLink}
 
 
       {/* 교육 일정 테이블 */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-100 border-t-blue-600 mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gray-700 mb-4"></div>
             <p className="text-gray-500 font-medium">일정을 불러오는 중...</p>
           </div>
         ) : (
           <>
-            <div className="bg-gradient-to-r from-gray-50 via-blue-50/30 to-purple-50/20 px-6 py-5 border-b border-gray-200 flex items-center justify-between">
+            <div className="bg-gray-50 px-6 py-5 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <button
                   onClick={handleSelectAll}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-blue-700 bg-white border-2 border-blue-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-800 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -418,7 +418,7 @@ ${declineLink}
                   {selectedIndices.size === filteredSchedules.length ? '전체 해제' : '전체 선택'}
                 </button>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg font-bold">{selectedIndices.size}</span>
+                  <span className="px-3 py-1.5 bg-gray-200 text-gray-900 rounded-lg font-bold">{selectedIndices.size}</span>
                   <span className="text-gray-400">/</span>
                   <span className="text-gray-600">{filteredSchedules.length}</span>
                   <span className="text-gray-500 ml-1">개 선택됨</span>
@@ -427,7 +427,7 @@ ${declineLink}
               <button
                 onClick={handleCreateRequest}
                 disabled={!selectedInstructor || selectedIndices.size === 0 || creating}
-                className="flex items-center gap-2 px-7 py-3.5 bg-gradient-to-r from-blue-600 via-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:via-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+                className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {creating ? (
                   <>
@@ -447,14 +447,14 @@ ${declineLink}
 
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50">
+                <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-4 text-left">
                       <input
                         type="checkbox"
                         checked={selectedIndices.size === filteredSchedules.length && filteredSchedules.length > 0}
                         onChange={handleSelectAll}
-                        className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                        className="h-5 w-5 text-gray-900 focus:ring-gray-300 border-gray-300 rounded cursor-pointer"
                       />
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">교육날짜</th>
@@ -489,8 +489,8 @@ ${declineLink}
                             isBlocked
                               ? 'bg-red-50 opacity-60'
                               : isSelected
-                              ? 'bg-gradient-to-r from-blue-50 to-blue-100/50 border-l-4 border-l-blue-600 shadow-sm'
-                              : 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/20'
+                              ? 'bg-gray-50 border-l-4 border-l-gray-900'
+                              : 'hover:bg-gray-50'
                           }`}
                         >
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -499,7 +499,7 @@ ${declineLink}
                               checked={isSelected}
                               disabled={isBlocked}
                               onChange={() => handleToggleSchedule(schedule.rowIndex)}
-                              className={`h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                              className={`h-5 w-5 text-gray-900 focus:ring-gray-300 border-gray-300 rounded ${
                                 isBlocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
                               }`}
                               title={isBlocked ? '강사 일정이 있어 선택할 수 없습니다' : ''}
@@ -510,11 +510,11 @@ ${declineLink}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {schedule.isTentative === 'O' ? (
-                              <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-100 to-amber-50 text-amber-800 border border-amber-200 shadow-sm">
+                              <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
                                 가일정
                               </span>
                             ) : (
-                              <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-emerald-100 to-emerald-50 text-emerald-800 border border-emerald-200 shadow-sm">
+                              <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
                                 확정
                               </span>
                             )}
@@ -547,22 +547,22 @@ ${declineLink}
 
       {/* 카톡 메시지 템플릿 */}
       {success && (
-        <div className="bg-gradient-to-br from-emerald-50 via-green-50/50 to-teal-50/30 border-2 border-emerald-200/50 rounded-2xl shadow-2xl p-8 backdrop-blur-sm">
+        <div className="bg-white border border-gray-200/60 rounded-lg shadow-sm p-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-emerald-900 mb-1">섭외 요청이 생성되었습니다!</h3>
-                <p className="text-sm text-emerald-700">카톡 메시지를 복사하여 전송하세요</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-1">섭외 요청이 생성되었습니다</h3>
+                <p className="text-sm text-gray-600">카톡 메시지를 복사하여 전송하세요</p>
               </div>
             </div>
             <button
               onClick={handleCopyTemplate}
-              className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl font-semibold hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -585,7 +585,7 @@ ${declineLink}
                   value={educationType}
                   onChange={(e) => setEducationType(e.target.value)}
                   placeholder="예: 오프라인, 온라인, 하이브리드 등"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all"
                 />
               </div>
 
@@ -599,7 +599,7 @@ ${declineLink}
                   </label>
                   <button
                     onClick={handleCopyTemplate}
-                    className="text-sm text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1"
+                    className="text-sm text-gray-700 hover:text-gray-900 font-semibold flex items-center gap-1"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -611,14 +611,14 @@ ${declineLink}
                   value={messageTemplate}
                   onChange={(e) => setMessageTemplate(e.target.value)}
                   rows={18}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm font-mono whitespace-pre-wrap resize-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all bg-white"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm font-mono whitespace-pre-wrap resize-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all bg-white"
                 />
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl border-2 border-gray-200/50 p-6 shadow-lg">
+            <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
               <h4 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -628,12 +628,12 @@ ${declineLink}
               <div className="space-y-5">
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">요청 ID</p>
-                  <p className="text-sm font-mono font-semibold text-gray-900 bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">{success.requestId}</p>
+                  <p className="text-sm font-mono font-semibold text-gray-900 bg-white px-4 py-3 rounded-lg border border-gray-200">{success.requestId}</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">선택된 일정</p>
                   <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">{success.selectedSchedules.length}</p>
+                    <p className="text-3xl font-bold text-gray-900">{success.selectedSchedules.length}</p>
                     <span className="text-gray-600 font-medium">개</span>
                   </div>
                 </div>
@@ -645,18 +645,8 @@ ${declineLink}
 
       {/* 에러 메시지 */}
       {error && (
-        <div className="bg-gradient-to-br from-red-50 to-rose-50/50 border-2 border-red-200/50 rounded-xl p-6 flex items-start gap-4 shadow-lg">
-          <div className="flex-shrink-0">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg flex items-center justify-center shadow-md">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <div>
-            <h4 className="text-sm font-semibold text-red-900 mb-1">오류가 발생했습니다</h4>
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
+        <div className="p-4 bg-red-50 border-l-4 border-red-400 rounded-lg">
+          <p className="text-sm font-medium text-red-800 whitespace-pre-line">{error}</p>
         </div>
       )}
     </div>

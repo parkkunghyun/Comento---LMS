@@ -90,7 +90,7 @@ function DatePickerCalendar({
           <div
             key={day}
             className={`text-center text-sm font-bold py-2 ${
-              index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-600'
+              index === 0 ? 'text-red-500' : index === 6 ? 'text-gray-500' : 'text-gray-600'
             }`}
           >
             {day}
@@ -124,10 +124,10 @@ function DatePickerCalendar({
                 ${!isCurrentMonth ? 'text-gray-300 cursor-not-allowed' : ''}
                 ${isPast && isCurrentMonth ? 'text-gray-300 cursor-not-allowed opacity-50' : ''}
                 ${isToday && isCurrentMonth && !isSelected
-                  ? 'bg-blue-50 border-2 border-blue-400 font-semibold'
+                  ? 'bg-gray-50 border-2 border-gray-300 font-semibold'
                   : ''}
                 ${isSelected && isCurrentMonth
-                  ? 'bg-blue-600 text-white shadow-md scale-105 font-semibold'
+                  ? 'bg-gray-700 text-white shadow-sm scale-105 font-semibold'
                   : ''}
                 ${!isSelected && !isToday && isCurrentMonth && !isPast
                   ? 'hover:bg-gray-50 text-gray-700'
@@ -166,13 +166,16 @@ interface PersonalEvent {
   rowIndex?: number;
   summary: string;
   date: string;
+  type?: '강의 불가' | '강의 선호';
 }
 
 export default function InstructorCalendarPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [addEventMode, setAddEventMode] = useState<'blocked' | 'preferred'>('blocked');
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [newEventName, setNewEventName] = useState('');
   const [creating, setCreating] = useState(false);
   const [personalEvents, setPersonalEvents] = useState<PersonalEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -226,6 +229,8 @@ export default function InstructorCalendarPage() {
 
     setCreating(true);
     try {
+      const eventType = addEventMode === 'preferred' ? '강의 선호' : '강의 불가';
+      const summary = newEventName.trim() || eventType;
       const response = await fetch('/api/instructor/personal-events', {
         method: 'POST',
         headers: {
@@ -233,21 +238,31 @@ export default function InstructorCalendarPage() {
         },
         body: JSON.stringify({
           dates: selectedDates,
+          summary,
+          type: eventType,
         }),
       });
 
       const data = await response.json();
       if (data.success) {
-        alert(`${selectedDates.length}개의 일정이 추가되었습니다.`);
+        alert(
+          `${selectedDates.length}개의 ${
+            addEventMode === 'preferred' ? '강의 선호' : '강의 불가'
+          } 일정이 추가되었습니다.`
+        );
         setShowAddEventModal(false);
         setSelectedDates([]);
+        setNewEventName('');
         await loadPersonalEvents();
       } else {
-        alert(data.error || '일정 추가 중 오류가 발생했습니다.');
+        alert(
+          data.error ||
+            `${addEventMode === 'preferred' ? '강의 선호' : '강의 불가'} 일정 추가 중 오류가 발생했습니다.`
+        );
       }
     } catch (error) {
       console.error('Error creating event:', error);
-      alert('일정 추가 중 오류가 발생했습니다.');
+      alert(`${addEventMode === 'preferred' ? '강의 선호' : '강의 불가'} 일정 추가 중 오류가 발생했습니다.`);
     } finally {
       setCreating(false);
     }
@@ -278,6 +293,9 @@ export default function InstructorCalendarPage() {
     }
 
     try {
+      const eventType =
+        editingEvent.type ||
+        (editingEvent.summary.includes('선호') ? '강의 선호' : '강의 불가');
       const response = await fetch('/api/instructor/personal-events', {
         method: 'PUT',
         headers: {
@@ -287,12 +305,13 @@ export default function InstructorCalendarPage() {
           rowIndex: editingEvent.rowIndex,
           summary: editForm.summary,
           date: editForm.date,
+          type: eventType,
         }),
       });
 
       const data = await response.json();
       if (data.success) {
-        alert('일정이 수정되었습니다.');
+        alert(`${eventType} 일정이 수정되었습니다.`);
         setEditingEvent(null);
         setEditForm({ summary: '', date: '' });
         await loadPersonalEvents();
@@ -355,25 +374,53 @@ export default function InstructorCalendarPage() {
             날짜를 클릭하시면 상세한 교육 일정을 확인할 수 있습니다
           </p>
         </div>
-        <button
-          onClick={() => setShowAddEventModal(true)}
-          className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          일정 추가
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setAddEventMode('preferred');
+              setShowAddEventModal(true);
+              setNewEventName('');
+            }}
+            className="px-5 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all duration-200 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            강의선호 일정 추가
+          </button>
+          <button
+            onClick={() => {
+              setAddEventMode('blocked');
+              setShowAddEventModal(true);
+              setNewEventName('');
+            }}
+            className="px-5 py-3 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-700 transition-all duration-200 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            강의 불가 일정 추가
+          </button>
+        </div>
       </div>
-      <Calendar 
-        apiEndpoint="/api/instructor/calendar" 
-        personalEventDates={personalEvents.map(e => e.date)}
-      />
+      {(() => {
+        const isPreferred = (e: PersonalEvent) => (e.type ? e.type === '강의 선호' : e.summary.includes('선호'));
+        const blockedDates = personalEvents.filter((e) => !isPreferred(e)).map((e) => e.date);
+        const preferredDates = personalEvents.filter((e) => isPreferred(e)).map((e) => e.date);
+        return (
+          <Calendar
+            apiEndpoint="/api/instructor/calendar"
+            personalEventDates={blockedDates}
+            preferredEventDates={preferredDates}
+          />
+        );
+      })()}
 
-      {/* 개인 일정 목록 */}
+      {/* 강의 불가/선호 일정 목록 */}
       <div className="mt-8">
         <div className="mb-6">
-          <h3 className="text-xl font-bold text-gray-900">개인 일정 목록</h3>
+          <h3 className="text-xl font-bold text-gray-900">강의 불가/선호 일정 목록</h3>
+          <p className="text-sm text-gray-600 mt-1">강의 불가는 회색, 강의 선호는 연두색으로 캘린더에 표시됩니다.</p>
         </div>
         
         {loadingEvents ? (
@@ -382,7 +429,7 @@ export default function InstructorCalendarPage() {
           </div>
         ) : personalEvents.length === 0 ? (
           <div className="bg-gray-50 rounded-2xl p-12 text-center border border-gray-100">
-            <p className="text-gray-400">등록된 개인 일정이 없습니다.</p>
+            <p className="text-gray-400">등록된 강의 불가/선호 일정이 없습니다.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -400,7 +447,7 @@ export default function InstructorCalendarPage() {
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+                        <div className={`w-2 h-2 rounded-full ${event.summary.includes('선호') ? 'bg-emerald-500' : 'bg-gray-500'}`}></div>
                         <div>
                           <h4 className="text-sm font-semibold text-gray-900 mb-1">
                             {event.summary}
@@ -443,7 +490,9 @@ export default function InstructorCalendarPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto p-8">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-3xl font-bold text-gray-900">일정 추가</h3>
+              <h3 className="text-3xl font-bold text-gray-900">
+                {addEventMode === 'preferred' ? '강의선호 일정 추가' : '강의 불가 일정 추가'}
+              </h3>
               <button
                 onClick={() => {
                   setShowAddEventModal(false);
@@ -459,10 +508,22 @@ export default function InstructorCalendarPage() {
 
             <div className="space-y-6">
               <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  일정 이름 (선택)
+                </label>
+                <input
+                  type="text"
+                  value={newEventName}
+                  onChange={(e) => setNewEventName(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all"
+                  placeholder="예) 외부 일정, 개인 사정, 선호 일정 등"
+                />
+              </div>
+              <div>
                 <label className="block text-lg font-semibold text-gray-700 mb-4">
                   날짜 선택 <span className="text-red-500">*</span>
                   {selectedDates.length > 0 && (
-                    <span className="ml-3 text-blue-600 font-normal text-base">
+                    <span className="ml-3 text-gray-700 font-normal text-base">
                       ({selectedDates.length}개 선택됨)
                     </span>
                   )}
@@ -478,9 +539,15 @@ export default function InstructorCalendarPage() {
               <button
                 onClick={handleAddEvent}
                 disabled={creating || selectedDates.length === 0}
-                className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`flex-1 px-8 py-4 text-white rounded-xl font-semibold text-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  addEventMode === 'preferred'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-gray-800 hover:bg-gray-700'
+                }`}
               >
-                {creating ? '추가 중...' : `${selectedDates.length}개 일정 추가`}
+                {creating
+                  ? '추가 중...'
+                  : `${selectedDates.length}개 ${addEventMode === 'preferred' ? '강의선호' : '강의 불가'} 일정 추가`}
               </button>
               <button
                 onClick={() => {
@@ -501,7 +568,7 @@ export default function InstructorCalendarPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">일정 수정</h3>
+              <h3 className="text-2xl font-bold text-gray-900">강의 불가 일정 수정</h3>
               <button
                 onClick={() => {
                   setEditingEvent(null);
@@ -518,13 +585,13 @@ export default function InstructorCalendarPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  일정 이름 <span className="text-red-500">*</span>
+                  메모 <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={editForm.summary}
                   onChange={(e) => setEditForm({ ...editForm, summary: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all"
                   placeholder="일정 이름을 입력하세요"
                 />
               </div>
@@ -537,7 +604,7 @@ export default function InstructorCalendarPage() {
                   type="date"
                   value={editForm.date}
                   onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all"
                 />
               </div>
             </div>
@@ -545,7 +612,7 @@ export default function InstructorCalendarPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleUpdateEvent}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                className="flex-1 px-6 py-3 bg-gray-800 text-white rounded-xl font-semibold hover:bg-gray-700 transition-all duration-200"
               >
                 수정 완료
               </button>

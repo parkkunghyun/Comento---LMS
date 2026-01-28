@@ -48,13 +48,6 @@ export default function EMSchedulePage() {
   const [thisMonthStats, setThisMonthStats] = useState({ total: 0 });
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [selectedInstructor, setSelectedInstructor] = useState<string>('');
-  
-  // 강사별 교육 일정 날짜와 개인 일정 날짜
-  const [instructorEducationDates, setInstructorEducationDates] = useState<Record<string, string[]>>({});
-  const [instructorPersonalDates, setInstructorPersonalDates] = useState<Record<string, string[]>>({});
-  
-  // 선택된 강사의 이벤트만 필터링
-  const [filteredEventsForCalendar, setFilteredEventsForCalendar] = useState<CalendarEvent[]>([]);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -90,105 +83,8 @@ export default function EMSchedulePage() {
     loadInstructors();
   }, []);
 
-  // 전체 교육 일정에서 강사별 교육 일정 날짜 추출 및 선택된 강사의 이벤트 필터링
   useEffect(() => {
-    if (events.length === 0 || instructors.length === 0) return;
-
-    // 강사 이메일 목록 생성 (빠른 조회를 위해 Set 사용)
-    const instructorEmails = new Set(instructors.map(i => i.email.toLowerCase()));
-
-    const educationDatesByInstructor: Record<string, string[]> = {};
-
-    events.forEach((event) => {
-      if (!event.attendees || event.attendees.length === 0) return;
-
-      // 날짜 추출
-      let eventDate = '';
-      if (event.start.dateTime) {
-        const date = new Date(event.start.dateTime);
-        eventDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      } else if (event.start.date) {
-        eventDate = event.start.date;
-      }
-
-      if (!eventDate) return;
-
-      // 각 참석자 중 강사 목록에 있는 강사만 필터링하여 날짜 추가
-      event.attendees.forEach((attendee) => {
-        if (attendee.email) {
-          const email = attendee.email.toLowerCase();
-          // 강사 목록에 있는 이메일인지 확인
-          if (instructorEmails.has(email)) {
-            if (!educationDatesByInstructor[email]) {
-              educationDatesByInstructor[email] = [];
-            }
-            if (!educationDatesByInstructor[email].includes(eventDate)) {
-              educationDatesByInstructor[email].push(eventDate);
-            }
-          }
-        }
-      });
-    });
-
-    console.log('[강사별 교육 일정 날짜 추출]', educationDatesByInstructor);
-    setInstructorEducationDates(educationDatesByInstructor);
-
-    // 선택된 강사가 있으면 해당 강사가 참석하는 이벤트만 필터링
-    if (selectedInstructor) {
-      const selectedEmail = selectedInstructor.toLowerCase();
-      const filtered = events.filter((event) => {
-        if (!event.attendees || event.attendees.length === 0) return false;
-        return event.attendees.some(
-          (attendee) => attendee.email?.toLowerCase() === selectedEmail
-        );
-      });
-      console.log(`[선택된 강사 필터링] 강사: ${selectedInstructor}, 필터링된 이벤트 개수: ${filtered.length}`);
-      setFilteredEventsForCalendar(filtered);
-    } else {
-      // 선택된 강사가 없으면 모든 이벤트 표시
-      setFilteredEventsForCalendar(events);
-    }
-  }, [events, instructors, selectedInstructor]);
-
-  // 강사별 개인 일정 날짜 로드
-  useEffect(() => {
-    if (instructors.length === 0) return;
-
-    const loadPersonalDates = async () => {
-      const personalDatesByInstructor: Record<string, string[]> = {};
-
-      for (const instructor of instructors) {
-        try {
-          const response = await fetch('/api/em/instructor-personal-events', {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            method: 'POST',
-            body: JSON.stringify({ instructorEmail: instructor.email }),
-          });
-          const data = await response.json();
-          if (data.success) {
-            personalDatesByInstructor[instructor.email.toLowerCase()] = 
-              data.events?.map((e: any) => e.date) || [];
-          }
-        } catch (error) {
-          console.error(`Error loading personal events for ${instructor.email}:`, error);
-        }
-      }
-
-      setInstructorPersonalDates(personalDatesByInstructor);
-    };
-
-    loadPersonalDates();
-  }, [instructors]);
-
-  useEffect(() => {
-    if (viewMode === 'list') {
-      loadSchedules();
-    } else if (viewMode === 'calendar') {
-      // 캘린더 뷰에서도 전체 교육 일정을 로드하여 강사별 날짜 추출
-      loadSchedules();
-    }
+    if (viewMode === 'list') loadSchedules();
   }, [viewMode]);
 
   useEffect(() => {
@@ -326,28 +222,30 @@ export default function EMSchedulePage() {
   return (
     <div className="space-y-6 pb-8">
       {/* 헤더 */}
-      <div className="bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 rounded-2xl shadow-lg border border-gray-200/50 p-8 backdrop-blur-sm">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+          <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center">
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">일정 확인</h1>
-            <p className="text-sm text-gray-600 mt-1">교육 일정을 캘린더 또는 목록으로 확인할 수 있습니다</p>
+            <h1 className="text-2xl font-bold text-gray-900">일정 확인</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              강사별 기업교육 일정과 개인 일정(불가/선호)을 함께 확인할 수 있습니다.
+            </p>
           </div>
         </div>
       </div>
 
       {/* 뷰 모드 전환 탭 */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 p-2 flex items-center gap-2">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-2 flex items-center gap-2">
         <button
           onClick={() => setViewMode('calendar')}
-          className={`flex-1 px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
+          className={`flex-1 px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 ${
             viewMode === 'calendar'
-              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              ? 'bg-gray-900 text-white'
+              : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
           <div className="flex items-center justify-center gap-2">
@@ -359,10 +257,10 @@ export default function EMSchedulePage() {
         </button>
         <button
           onClick={() => setViewMode('list')}
-          className={`flex-1 px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
+          className={`flex-1 px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 ${
             viewMode === 'list'
-              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              ? 'bg-gray-900 text-white'
+              : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
           <div className="flex items-center justify-center gap-2">
@@ -378,7 +276,7 @@ export default function EMSchedulePage() {
       {viewMode === 'calendar' && (
         <div className="space-y-6">
           {/* 강사 선택 */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
               <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -388,7 +286,7 @@ export default function EMSchedulePage() {
             <select
               value={selectedInstructor}
               onChange={(e) => setSelectedInstructor(e.target.value)}
-              className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all appearance-none bg-white shadow-sm hover:shadow-md cursor-pointer"
+              className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all appearance-none bg-white cursor-pointer"
             >
               <option value="">전체 기업교육 일정</option>
               {instructors.map((instructor) => (
@@ -401,44 +299,29 @@ export default function EMSchedulePage() {
 
           {/* 전체 기업교육 일정 또는 강사별 캘린더 */}
           {selectedInstructor ? (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
               <div className="mb-4">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
                   {instructors.find((i) => i.email === selectedInstructor)?.name || '강사'} 캘린더
                 </h3>
                 <p className="text-sm text-gray-600">
                   강사의 기업교육 일정과 개인 일정을 확인할 수 있습니다
                 </p>
               </div>
-              {(() => {
-                const selectedEmail = selectedInstructor.toLowerCase();
-                const educationDates = instructorEducationDates[selectedEmail] || [];
-                const personalDates = instructorPersonalDates[selectedEmail] || [];
-                
-                console.log(`[선택된 강사] 이메일: ${selectedEmail}`);
-                console.log(`[선택된 강사] 교육 일정 날짜:`, educationDates);
-                console.log(`[선택된 강사] 개인 일정 날짜:`, personalDates);
-                console.log(`[선택된 강사] 필터링된 이벤트:`, filteredEventsForCalendar.length);
-                
-                return (
-                  <Calendar 
-                    apiEndpoint="/api/em/calendar"
-                    educationEventDates={educationDates}
-                    personalEventDates={personalDates}
-                    filteredEvents={filteredEventsForCalendar}
-                  />
-                );
-              })()}
+              <Calendar
+                apiEndpoint={`/api/em/instructor-calendar?instructorEmail=${encodeURIComponent(selectedInstructor)}`}
+                variant="business"
+              />
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
               <div className="mb-4">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">전체 기업교육 일정</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">전체 기업교육 일정</h3>
                 <p className="text-sm text-gray-600">
                   모든 강사의 기업교육 일정을 확인할 수 있습니다
                 </p>
               </div>
-              <Calendar apiEndpoint="/api/em/calendar" />
+              <Calendar apiEndpoint="/api/em/calendar" variant="business" />
             </div>
           )}
         </div>
@@ -448,14 +331,14 @@ export default function EMSchedulePage() {
       {viewMode === 'list' && (
         <div className="space-y-5">
           {/* 이번달 요약 카드 */}
-          <div className="bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-300">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">이번달 총 일정</div>
-                <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{thisMonthStats.total}</div>
+                <div className="text-sm font-semibold text-gray-600 mb-2">이번달 총 일정</div>
+                <div className="text-3xl font-bold text-gray-900">{thisMonthStats.total}</div>
                 <div className="text-sm text-gray-500 mt-1">건</div>
               </div>
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <div className="w-14 h-14 bg-gray-900 rounded-xl flex items-center justify-center">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
@@ -464,7 +347,7 @@ export default function EMSchedulePage() {
           </div>
 
           {/* 검색 바 */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 p-5 hover:shadow-xl transition-shadow duration-300">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-5">
             <div className="flex items-center gap-3">
               <div className="flex-1 relative">
                 <input
@@ -472,7 +355,7 @@ export default function EMSchedulePage() {
                   placeholder="고객사명, 클래스명, 강사명, DRI로 검색..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-3 pl-11 text-sm border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white shadow-sm hover:shadow-md"
+                  className="w-full px-4 py-3 pl-11 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all bg-white"
                 />
                 <svg
                   className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -495,7 +378,7 @@ export default function EMSchedulePage() {
             {searchQuery && (
               <div className="mt-3 px-3 py-2 bg-blue-50 rounded-lg">
                 <div className="text-sm text-gray-700">
-                  검색 결과: <span className="font-bold text-blue-600">{filteredEvents.length}건</span>
+                  검색 결과: <span className="font-bold text-gray-900">{filteredEvents.length}건</span>
                 </div>
               </div>
             )}
@@ -503,12 +386,12 @@ export default function EMSchedulePage() {
 
           {/* 일정 목록 */}
           {loadingSchedules ? (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 p-16 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-100 border-t-blue-600 mx-auto mb-4"></div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-16 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gray-700 mx-auto mb-4"></div>
               <div className="text-sm font-medium text-gray-600">일정을 불러오는 중...</div>
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 p-16 text-center">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-16 text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -519,10 +402,10 @@ export default function EMSchedulePage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200/50 overflow-hidden">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50">
+                  <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                         일정
@@ -545,7 +428,7 @@ export default function EMSchedulePage() {
                     {filteredEvents.map((event) => (
                       <tr 
                         key={event.id} 
-                        className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/20 transition-all duration-200"
+                        className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-semibold text-gray-900">{formatEventDate(event)}</div>

@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
     const { acceptLink, declineLink } = await createRecruitmentRequest(
       requestId,
       selectedSchedules,
-      instructorName.trim()
+      instructorName.trim(),
+      user.email
     );
 
     return NextResponse.json({
