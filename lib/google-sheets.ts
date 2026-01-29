@@ -102,6 +102,74 @@ export async function findEMByIdAndPassword(
 }
 
 /**
+ * EM 로그인 시트에서 이메일로 해당 EM의 아이디/비번을 갱신합니다.
+ * 시트 구조(EM로그인): A=이메일, B=이름, C=아이디, D=비번
+ * @param email EM 이메일 (행 식별용)
+ * @param currentPassword 현재 비밀번호 (검증용)
+ * @param newId 새 아이디
+ * @param newPassword 새 비밀번호
+ * @returns 성공 여부
+ */
+export async function updateEMCredentialsByEmail(
+  email: string,
+  currentPassword: string,
+  newId: string,
+  newPassword: string
+): Promise<{ ok: boolean; error?: string }> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId =
+    process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID ||
+    '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
+  const sheetName = 'EM로그인';
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:D`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return { ok: false, error: 'EM 데이터를 찾을 수 없습니다.' };
+    }
+
+    const emailTrim = (email || '').toString().trim();
+    const currentTrim = (currentPassword || '').toString().trim();
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      const emEmail = (row[0] || '').toString().trim();
+      const storedPassword = (row[3] || '').toString().trim();
+
+      if (emEmail !== emailTrim) continue;
+      if (storedPassword !== currentTrim) {
+        return { ok: false, error: '현재 비밀번호가 일치하지 않습니다.' };
+      }
+
+      const rowIndex = i + 1; // 1-based
+      const range = `${sheetName}!C${rowIndex}:D${rowIndex}`;
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range,
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [[(newId || '').toString().trim(), (newPassword || '').toString().trim()]],
+        },
+      });
+      return { ok: true };
+    }
+
+    return { ok: false, error: '해당 이메일의 EM 정보를 찾을 수 없습니다.' };
+  } catch (error) {
+    console.error('Error updating EM credentials:', error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : '아이디/비밀번호 변경 중 오류가 발생했습니다.',
+    };
+  }
+}
+
+/**
  * Google Sheets API 클라이언트를 생성합니다.
  */
 export function getGoogleSheetsClient() {

@@ -1,4 +1,4 @@
-# 강사관리 LMS
+# 강사 ADMIN
 
 Next.js App Router 기반의 강사 섭외 및 교육 운영을 위한 LMS(Learning Management System)입니다.
 

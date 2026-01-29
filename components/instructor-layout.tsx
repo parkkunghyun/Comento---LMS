@@ -61,7 +61,7 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
       {/* 사이드바 */}
       <aside className="w-64 bg-white border-r border-gray-200/60 min-h-screen">
         <div className="p-6 border-b border-gray-200/60">
-          <h1 className="text-xl font-semibold text-gray-800 tracking-tight">강사관리 LMS</h1>
+          <h1 className="text-xl font-semibold text-gray-800 tracking-tight">강사 ADMIN</h1>
         </div>
         <nav className="p-4">
           <ul className="space-y-1">

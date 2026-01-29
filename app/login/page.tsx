@@ -62,7 +62,7 @@ export default function LoginPage() {
           <div className="px-8 pt-10 pb-6">
             <div className="text-center">
               <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">
-                강사관리 LMS
+                강사 ADMIN
               </h1>
               <p className="text-sm text-gray-500 mt-1">
                 로그인 유형을 선택하세요
