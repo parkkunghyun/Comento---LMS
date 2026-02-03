@@ -1382,14 +1382,16 @@ export async function createRecruitmentRequest(
     const values: any[][] = [];
     for (const schedule of schedules) {
       const companyName = extractCompanyName(schedule.className) || schedule.clientName;
-      
+      // 가일정이면 교육일을 '미정'으로 기록
+      const educationDateValue = schedule.isTentative === 'O' ? '미정' : schedule.educationDate;
+
       // 시트 구조:
       // 요청ID | 기업명 | 교육명 | 교육일 | 멘토명 | 상태 | 응답일 | 거절사유 | 담당EM | 요청월(옵션)
       values.push([
         requestId, // A열: 요청ID
         companyName, // B열: 기업명
         schedule.className, // C열: 교육명
-        schedule.educationDate, // D열: 교육일
+        educationDateValue, // D열: 교육일 (가일정이면 '미정')
         instructorName, // E열: 멘토명
         'REQUESTED', // F열: 상태
         '', // G열: 응답일

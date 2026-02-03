@@ -221,13 +221,13 @@ export default function Calendar({
       <div className="flex-[2] max-w-2xl bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">일정 캘린더</h3>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mb-4">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mb-4">
             <div className="flex items-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-sky-500" />
               <span>기업교육</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-gray-900" />
+              <span className="inline-flex items-center justify-center w-5 h-5 text-red-500 font-bold" aria-hidden>✕</span>
               <span>강의 불가</span>
             </div>
             <div className="flex items-center gap-2">
@@ -348,9 +348,6 @@ export default function Calendar({
                       ${isSelected
                         ? 'bg-gray-800 text-white shadow-sm scale-105'
                         : ''}
-                      ${hasBlockedDate && !isSelected && isCurrentMonth
-                        ? 'bg-gray-300 hover:bg-gray-400'
-                        : ''}
                       ${
                         hasEducationDate &&
                         !hasBlockedDate &&
@@ -379,20 +376,29 @@ export default function Calendar({
                         : ''}
                     `}
                   >
-                    <span className={`text-sm font-medium ${isSelected ? 'text-white' : ''}`}>
+                    <span className={`relative z-10 text-sm font-medium ${isSelected ? 'text-white' : ''}`}>
                       {date.getDate()}
                     </span>
-                    {/* 하단 점 표시 (기업교육/불가/선호) */}
-                    {(hasEducationDate || hasBlockedDate || hasPreferredDate || hasEducationEvents || hasBlockedEvents || hasPreferredEvents) && isCurrentMonth && (
+                    {/* 강의 불가: X 표시 (강사/EM 공통) - 셀 중앙에 크게 표시 */}
+                    {(hasBlockedDate || hasBlockedEvents) && isCurrentMonth && (
+                      <span
+                        className={`absolute inset-0 flex items-center justify-center pointer-events-none text-3xl font-bold leading-none select-none ${
+                          isSelected ? 'text-white/90' : 'text-red-500'
+                        }`}
+                        style={{ zIndex: 0 }}
+                        aria-hidden
+                      >
+                        ✕
+                      </span>
+                    )}
+                    {/* 하단 점 표시 (기업교육/선호) */}
+                    {(hasEducationDate || hasPreferredDate || hasEducationEvents || hasPreferredEvents) && isCurrentMonth && (
                       <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 items-center justify-center">
                         {(hasEducationDate || hasEducationEvents) && (
                           <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-sky-500'}`} />
                         )}
                         {(hasPreferredDate || hasPreferredEvents) && (
                           <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-700'}`} />
-                        )}
-                        {(hasBlockedDate || hasBlockedEvents) && (
-                          <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-gray-900'}`} />
                         )}
                       </div>
                     )}

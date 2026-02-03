@@ -125,6 +125,13 @@ export default function RecruitmentCreatePage() {
     setFilteredSchedules(filtered);
   }, [searchQuery, schedules]);
 
+  // 고객사명 검색을 지우면 섭외 요청 템플릿 숨김 (다른 고객사 선택용)
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSuccess(null);
+    }
+  }, [searchQuery]);
+
   // 날짜가 강사 일정과 겹치는지 확인
   const isDateBlocked = (dateStr: string): boolean => {
     if (instructorEvents.length === 0) return false;
@@ -271,11 +278,13 @@ export default function RecruitmentCreatePage() {
     const firstSchedule = selectedSchedules[0];
     const companyName = extractCompanyName(firstSchedule.className) || firstSchedule.clientName;
     const className = firstSchedule.className;
-    const educationDate = firstSchedule.educationDate;
+    // 가일정이면 교육일자를 '미정'으로 표시
+    const educationDateDisplay = (s: ClassSchedule) => (s.isTentative === 'O' ? '미정' : s.educationDate);
+    const educationDate = educationDateDisplay(firstSchedule);
 
     let dateList = educationDate;
     if (selectedSchedules.length > 1) {
-      dateList = selectedSchedules.map((s) => s.educationDate).join(', ');
+      dateList = selectedSchedules.map((s) => educationDateDisplay(s)).join(', ');
     }
 
     const template = `멘토님 안녕하세요 🙂
@@ -396,6 +405,103 @@ ${declineLink}
         </div>
       </div>
 
+      {/* 섭외 요청 생성 성공 시 먼저 표시: 카톡 메시지 템플릿 */}
+      {success && (
+        <div className="bg-white border border-gray-200/60 rounded-lg shadow-sm p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-1">섭외 요청이 생성되었습니다</h3>
+                <p className="text-sm text-gray-600">카톡 메시지를 복사하여 전송하세요</p>
+              </div>
+            </div>
+            <button
+              onClick={handleCopyTemplate}
+              className="flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              전체 메시지 복사
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="lg:col-span-2 space-y-4">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  교육 형태 (수정 가능)
+                </label>
+                <input
+                  type="text"
+                  value={educationType}
+                  onChange={(e) => setEducationType(e.target.value)}
+                  placeholder="예: 오프라인, 온라인, 하이브리드 등"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                    카톡 메시지 템플릿
+                  </label>
+                  <button
+                    onClick={handleCopyTemplate}
+                    className="text-sm text-gray-700 hover:text-gray-900 font-semibold flex items-center gap-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    복사
+                  </button>
+                </div>
+                <textarea
+                  value={messageTemplate}
+                  onChange={(e) => setMessageTemplate(e.target.value)}
+                  rows={18}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm font-mono whitespace-pre-wrap resize-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
+              <h4 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
+                <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                요청 정보
+              </h4>
+              <div className="space-y-5">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">요청 ID</p>
+                  <p className="text-sm font-mono font-semibold text-gray-900 bg-white px-4 py-3 rounded-lg border border-gray-200">{success.requestId}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">선택된 일정</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-bold text-gray-900">{success.selectedSchedules.length}</p>
+                    <span className="text-gray-600 font-medium">개</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 교육 일정 테이블 */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 overflow-hidden">
@@ -544,104 +650,6 @@ ${declineLink}
           </>
         )}
       </div>
-
-      {/* 카톡 메시지 템플릿 */}
-      {success && (
-        <div className="bg-white border border-gray-200/60 rounded-lg shadow-sm p-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-1">섭외 요청이 생성되었습니다</h3>
-                <p className="text-sm text-gray-600">카톡 메시지를 복사하여 전송하세요</p>
-              </div>
-            </div>
-            <button
-              onClick={handleCopyTemplate}
-              className="flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              전체 메시지 복사
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div className="lg:col-span-2 space-y-4">
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  교육 형태 (수정 가능)
-                </label>
-                <input
-                  type="text"
-                  value={educationType}
-                  onChange={(e) => setEducationType(e.target.value)}
-                  placeholder="예: 오프라인, 온라인, 하이브리드 등"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
-                    카톡 메시지 템플릿
-                  </label>
-                  <button
-                    onClick={handleCopyTemplate}
-                    className="text-sm text-gray-700 hover:text-gray-900 font-semibold flex items-center gap-1"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    복사
-                  </button>
-                </div>
-                <textarea
-                  value={messageTemplate}
-                  onChange={(e) => setMessageTemplate(e.target.value)}
-                  rows={18}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm font-mono whitespace-pre-wrap resize-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all bg-white"
-                />
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
-              <h4 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
-                <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                요청 정보
-              </h4>
-              <div className="space-y-5">
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">요청 ID</p>
-                  <p className="text-sm font-mono font-semibold text-gray-900 bg-white px-4 py-3 rounded-lg border border-gray-200">{success.requestId}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">선택된 일정</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-bold text-gray-900">{success.selectedSchedules.length}</p>
-                    <span className="text-gray-600 font-medium">개</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 에러 메시지 */}
       {error && (
