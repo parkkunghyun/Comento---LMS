@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { getGoogleSheetsClient } from '@/lib/google-sheets';
+import { getGoogleSheetsClient, parseEmailCell } from '@/lib/google-sheets';
 
 // 강사 개인 일정을 저장할 시트 정보 (강사일정 시트 사용)
 const PERSONAL_EVENTS_SPREADSHEET_ID = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
@@ -51,16 +51,19 @@ export async function GET(request: NextRequest) {
       // 시트 구조: 강사이메일 | 일정이름 | 날짜 | 유형
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        const instructorEmail = (row[0] || '').trim();
+        const emailCell = (row[0] || '').trim(); // A열: 단일 이메일 또는 "이메일1, 이메일2"
         const summary = (row[1] || '').trim();
         const date = (row[2] || '').trim();
         const rawType = (row[3] || '').trim();
         const type = normalizeType(rawType, summary);
 
-        console.log(`[개인 일정 API GET] 행 ${i}: 이메일="${instructorEmail}", 일정="${summary}", 날짜="${date}", 유형="${type}"`);
-        console.log(`[개인 일정 API GET] 이메일 매칭: ${instructorEmail.toLowerCase()} === ${user.email.toLowerCase()} ? ${instructorEmail.toLowerCase() === user.email.toLowerCase()}`);
+        const rowEmails = parseEmailCell(emailCell);
+        const isMatch = rowEmails.some((e) => e === user.email.toLowerCase());
 
-        if (instructorEmail.toLowerCase() === user.email.toLowerCase() && summary && date) {
+        console.log(`[개인 일정 API GET] 행 ${i}: 이메일="${emailCell}", 일정="${summary}", 날짜="${date}", 유형="${type}"`);
+        console.log(`[개인 일정 API GET] 이메일 매칭: row 이메일들 중 로그인 이메일 포함? ${isMatch}`);
+
+        if (isMatch && summary && date) {
           personalEvents.push({
             rowIndex: i + 1, // 1-based 행 번호 (헤더 포함)
             summary,
@@ -187,9 +190,11 @@ export async function DELETE(request: NextRequest) {
       });
 
       const row = response.data.values?.[0];
-      const instructorEmail = (row?.[0] || '').trim();
+      const emailCell = (row?.[0] || '').trim();
+      const rowEmails = parseEmailCell(emailCell);
+      const isOwner = rowEmails.some((e) => e === user.email.toLowerCase());
 
-      if (instructorEmail.toLowerCase() !== user.email.toLowerCase()) {
+      if (!isOwner) {
         return NextResponse.json(
           { error: '권한이 없습니다.' },
           { status: 403 }

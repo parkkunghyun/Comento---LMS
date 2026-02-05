@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getInstructorEvents, CalendarEvent } from '@/lib/google-calendar';
-import { getGoogleSheetsClient } from '@/lib/google-sheets';
+import { getGoogleSheetsClient, parseEmailCell } from '@/lib/google-sheets';
 
 const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || 'c_434b3261f4e10e2caf2228a9f17b773c88a54e11c52d3ac541d8dd1ad323e01a@group.calendar.google.com';
 const PERSONAL_EVENTS_SPREADSHEET_ID = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
@@ -18,26 +18,36 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 쿼리 파라미터에서 강사 이메일과 날짜 범위 가져오기
+    // 쿼리 파라미터에서 강사 이메일과 날짜 범위 가져오기 (쉼표로 여러 이메일 가능)
     const searchParams = request.nextUrl.searchParams;
-    const instructorEmail = searchParams.get('instructorEmail');
+    const instructorEmailParam = searchParams.get('instructorEmail');
     const timeMin = searchParams.get('timeMin') || undefined;
     const timeMax = searchParams.get('timeMax') || undefined;
 
-    if (!instructorEmail) {
+    if (!instructorEmailParam) {
       return NextResponse.json(
         { error: '강사 이메일이 필요합니다.' },
         { status: 400 }
       );
     }
 
-    // 강사 기업교육 일정 조회
-    const calendarEvents = await getInstructorEvents(
-      instructorEmail,
-      CALENDAR_ID,
-      timeMin,
-      timeMax
+    const instructorEmails = parseEmailCell(instructorEmailParam);
+
+    // 강사 기업교육 일정 조회 (여러 이메일이면 각각 조회 후 합침)
+    const calendarPromises = instructorEmails.map((email) =>
+      getInstructorEvents(email, CALENDAR_ID, timeMin, timeMax)
     );
+    const calendarResults = await Promise.all(calendarPromises);
+    const seenEventIds = new Set<string>();
+    const calendarEvents: CalendarEvent[] = [];
+    for (const events of calendarResults) {
+      for (const event of events) {
+        if (event.id && !seenEventIds.has(event.id)) {
+          seenEventIds.add(event.id);
+          calendarEvents.push(event);
+        }
+      }
+    }
 
     // 강사 개인 일정 조회
     const sheets = getGoogleSheetsClient();
@@ -52,15 +62,18 @@ export async function GET(request: NextRequest) {
       const rows = response.data.values || [];
       
       // 헤더 행을 제외하고 데이터 행만 처리
-      // 시트 구조: 강사이메일 | 일정이름 | 날짜
+      // 시트 구조: 강사이메일 | 일정이름 | 날짜 (A열에 쉼표로 여러 이메일일 수 있음)
+      const instructorEmailSet = new Set(instructorEmails.map((e) => e.toLowerCase()));
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        const email = (row[0] || '').trim();
+        const emailCell = (row[0] || '').trim();
         const summary = (row[1] || '').trim();
         const date = (row[2] || '').trim();
         const rawType = (row[3] || '').trim();
 
-        if (email.toLowerCase() === instructorEmail.toLowerCase() && summary && date) {
+        const rowEmails = parseEmailCell(emailCell);
+        const isMatch = rowEmails.some((e) => instructorEmailSet.has(e));
+        if (isMatch && summary && date) {
           const type =
             rawType === '강의 선호' || rawType === '강의 불가'
               ? rawType
@@ -93,7 +106,7 @@ export async function GET(request: NextRequest) {
             },
             attendees: [
               {
-                email: instructorEmail,
+                email: instructorEmails[0] ?? '',
                 instructorName: '',
               },
             ],
@@ -112,7 +125,7 @@ export async function GET(request: NextRequest) {
     // 기업교육 일정과 개인 일정 합치기
     const allEvents = [...calendarEvents, ...personalEvents];
 
-    console.log(`[EM 강사 캘린더 API] 강사: ${instructorEmail}`);
+    console.log(`[EM 강사 캘린더 API] 강사 이메일: ${instructorEmails.join(', ')}`);
     console.log(`[EM 강사 캘린더 API] 기업교육 일정 개수: ${calendarEvents.length}`);
     console.log(`[EM 강사 캘린더 API] 기업교육 일정 목록:`, calendarEvents.map(e => ({ summary: e.summary, date: e.start.dateTime || e.start.date })));
     console.log(`[EM 강사 캘린더 API] 개인 일정 개수: ${personalEvents.length}`);

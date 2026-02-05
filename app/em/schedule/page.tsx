@@ -321,7 +321,7 @@ export default function EMSchedulePage() {
                   모든 강사의 기업교육 일정을 확인할 수 있습니다
                 </p>
               </div>
-              <Calendar apiEndpoint="/api/em/calendar" variant="business" />
+              <Calendar apiEndpoint="/api/em/calendar" variant="business" educationOnly />
             </div>
           )}
         </div>

@@ -290,16 +290,8 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
           <div className="px-8 py-4 flex justify-between items-center">
             <div></div>
 
-            {/* 우측: 강사 섭외하기 버튼 + 프로필 */}
+            {/* 우측: 프로필 */}
             <div className="flex items-center gap-4">
-              {/* 강사 섭외하기 버튼 */}
-              <a
-                href="/em/recruitment/create"
-                className="px-5 py-2.5 text-sm font-medium text-gray-800 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
-              >
-                강사 섭외하기
-              </a>
-
               {/* 프로필 */}
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-white font-semibold">

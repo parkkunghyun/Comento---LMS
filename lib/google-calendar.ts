@@ -83,18 +83,25 @@ export async function getInstructorEvents(
     console.log(`[getInstructorEvents] 조회 강사 이메일: ${instructorEmail}`);
     console.log(`[getInstructorEvents] 전체 이벤트 개수: ${events.length}`);
 
+    // 참석자 이메일 정규화 (Google API는 때때로 "mailto:xxx@xx.com" 형태로 반환)
+    const normalizeAttendeeEmail = (raw: string | null | undefined): string => {
+      if (!raw) return '';
+      let e = raw.trim().toLowerCase();
+      if (e.startsWith('mailto:')) e = e.slice(7).trim();
+      return e;
+    };
+
     // 참석자 이메일로 필터링
     const filteredEvents = events.filter((event) => {
       if (!event.attendees || event.attendees.length === 0) {
         return false;
       }
       
-      // 참석자 이메일 목록 확인
       const attendeeEmails = event.attendees
-        .map(a => a.email?.trim().toLowerCase())
+        .map((a) => normalizeAttendeeEmail(a.email))
         .filter(Boolean);
       
-      const normalizedInstructorEmail = instructorEmail.trim().toLowerCase();
+      const normalizedInstructorEmail = instructorEmail.trim().toLowerCase().replace(/^mailto:/, '').trim();
       const isMatch = attendeeEmails.some(
         (email) => email === normalizedInstructorEmail
       );
@@ -108,13 +115,12 @@ export async function getInstructorEvents(
 
     console.log(`[getInstructorEvents] 필터링된 이벤트 개수: ${filteredEvents.length}`);
 
-    // 모든 참석자 이메일 수집
+    // 모든 참석자 이메일 수집 (mailto: 제거한 형태로)
     const allAttendeeEmails = new Set<string>();
     filteredEvents.forEach((event) => {
       event.attendees?.forEach((attendee) => {
-        if (attendee.email) {
-          allAttendeeEmails.add(attendee.email.trim());
-        }
+        const e = normalizeAttendeeEmail(attendee.email);
+        if (e) allAttendeeEmails.add(e);
       });
     });
 

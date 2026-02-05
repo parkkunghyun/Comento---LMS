@@ -132,16 +132,20 @@ export default function RecruitmentCreatePage() {
     }
   }, [searchQuery]);
 
-  // 날짜가 강사 일정과 겹치는지 확인
+  // 날짜가 강사 일정과 겹치는지 확인 (미정/빈값/잘못된 형식이면 겹침 없음으로 처리)
   const isDateBlocked = (dateStr: string): boolean => {
     if (instructorEvents.length === 0) return false;
+    if (!dateStr || dateStr.trim() === '' || dateStr === '미정') return false;
 
     const scheduleDate = new Date(dateStr);
+    if (Number.isNaN(scheduleDate.getTime())) return false;
+
     const scheduleDateStr = scheduleDate.toISOString().split('T')[0];
 
     return instructorEvents.some((event) => {
       if (event.start.dateTime) {
         const eventDate = new Date(event.start.dateTime);
+        if (Number.isNaN(eventDate.getTime())) return false;
         const eventDateStr = eventDate.toISOString().split('T')[0];
         return eventDateStr === scheduleDateStr;
       } else if (event.start.date) {

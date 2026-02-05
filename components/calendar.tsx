@@ -32,6 +32,8 @@ interface CalendarProps {
   educationEventDates?: string[]; // 교육 일정 날짜 배열 (YYYY-MM-DD 형식) - 강사별 캘린더용
   filteredEvents?: CalendarEvent[]; // 필터링된 이벤트 목록 (강사 선택 시 사용)
   variant?: 'default' | 'business'; // 색감/강조 방식
+  /** true면 기업교육 일정만 표시 (강의 불가/선호 개인 일정 제외) - EM 전체 기업교육 일정용 */
+  educationOnly?: boolean;
 }
 
 export default function Calendar({
@@ -42,6 +44,7 @@ export default function Calendar({
   educationEventDates = [],
   filteredEvents,
   variant = 'default',
+  educationOnly = false,
 }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -68,9 +71,7 @@ export default function Calendar({
 
   // 일정 로드
   useEffect(() => {
-    // filteredEvents가 전달되면 그것을 사용 (강사 선택 시)
     if (filteredEvents) {
-      console.log('[캘린더 컴포넌트] 필터링된 이벤트 사용:', filteredEvents.length);
       setEvents(filteredEvents);
       setLoading(false);
       return;
@@ -86,27 +87,18 @@ export default function Calendar({
         const timeMin = startOfMonth.toISOString();
         const timeMax = endOfMonth.toISOString();
 
-        console.log('[캘린더 컴포넌트] 일정 로드 시작');
-        console.log('[캘린더 컴포넌트] API 엔드포인트:', apiEndpoint);
-        console.log('[캘린더 컴포넌트] 날짜 범위:', { timeMin, timeMax });
-
         const separator = apiEndpoint.includes('?') ? '&' : '?';
         const response = await fetch(
           `${apiEndpoint}${separator}timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
         );
 
-        console.log('[캘린더 컴포넌트] API 응답 상태:', response.status, response.ok);
-
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('[캘린더 컴포넌트] API 오류 응답:', errorText);
+          console.error('[캘린더] API 오류:', errorText);
           throw new Error('일정을 불러올 수 없습니다.');
         }
 
         const data = await response.json();
-        console.log('[캘린더 컴포넌트] 받은 데이터:', data);
-        console.log('[캘린더 컴포넌트] 일정 개수:', data.events?.length || 0);
-        
         const allEvents = data.events || [];
         const isPersonalEvent = (e: any) =>
           e.isPersonal ||
@@ -115,23 +107,8 @@ export default function Calendar({
           e.description === '강의 불가' ||
           e.description === '강의 선호';
 
-        const personalEvents = allEvents.filter(isPersonalEvent);
         const educationEvents = allEvents.filter((e: any) => !isPersonalEvent(e));
-        
-        console.log('[캘린더 컴포넌트] 전체 일정 개수:', allEvents.length);
-        console.log('[캘린더 컴포넌트] 개인 일정 개수:', personalEvents.length);
-        console.log('[캘린더 컴포넌트] 강의 일정 개수:', educationEvents.length);
-        console.log('[캘린더 컴포넌트] 강의 일정 목록:', educationEvents.map((e: any) => ({ 
-          summary: e.summary, 
-          date: e.start?.dateTime || e.start?.date,
-          isPersonal: e.isPersonal,
-          description: e.description,
-          id: e.id
-        })));
-        console.log('[캘린더 컴포넌트] 개인 일정 목록:', personalEvents);
-        
-        // 모든 이벤트 설정 (기업교육 일정 + 개인 일정)
-        setEvents(allEvents);
+        setEvents(educationOnly ? educationEvents : allEvents);
       } catch (error) {
         console.error('[캘린더 컴포넌트] 일정 로드 오류:', error);
       } finally {
@@ -142,7 +119,7 @@ export default function Calendar({
     if (apiEndpoint) {
       loadEvents();
     }
-  }, [currentDate, apiEndpoint, filteredEvents]);
+  }, [currentDate, apiEndpoint, filteredEvents, educationOnly]);
 
   // 날짜를 YYYY-MM-DD 형식으로 변환 (로컬 시간 기준)
   const formatDateString = (date: Date): string => {
@@ -226,14 +203,18 @@ export default function Calendar({
               <span className="inline-block w-2 h-2 rounded-full bg-sky-500" />
               <span>기업교육</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-5 h-5 text-red-500 font-bold" aria-hidden>✕</span>
-              <span>강의 불가</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-700" />
-              <span>강의 선호</span>
-            </div>
+            {!educationOnly && (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-red-500 font-bold" aria-hidden>✕</span>
+                  <span>강의 불가</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-700" />
+                  <span>강의 선호</span>
+                </div>
+              </>
+            )}
           </div>
           <div className="flex items-center justify-between mb-4">
             <button

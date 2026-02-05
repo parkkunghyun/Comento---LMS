@@ -420,7 +420,7 @@ export default function InstructorCalendarPage() {
       <div className="mt-8">
         <div className="mb-6">
           <h3 className="text-xl font-bold text-gray-900">강의 불가/선호 일정 목록</h3>
-          <p className="text-sm text-gray-600 mt-1">강의 불가는 회색, 강의 선호는 연두색으로 캘린더에 표시됩니다.</p>
+          <p className="text-sm text-gray-600 mt-1">강의 불가는 X표시, 강의 선호는 연두색으로 캘린더에 표시됩니다.</p>
         </div>
         
         {loadingEvents ? (
