@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { randomUUID } from 'crypto';
-import { createRecruitmentRequest, getClassSchedules, ClassScheduleData } from '@/lib/google-sheets';
+import {
+  createRecruitmentRequest,
+  getClassSchedules,
+  ClassScheduleData,
+  generateShortCode,
+  appendShortLink,
+} from '@/lib/google-sheets';
 
 /**
  * 섭외 요청 생성 API
@@ -67,12 +73,26 @@ export async function POST(request: NextRequest) {
     }
 
     // 외부강사_섭외_로그 시트에 저장
-    const { acceptLink, declineLink } = await createRecruitmentRequest(
+    const { acceptLink: longAccept, declineLink: longDecline } = await createRecruitmentRequest(
       requestId,
       selectedSchedules,
       instructorName.trim(),
       user.email
     );
+
+    let acceptLink = longAccept;
+    let declineLink = longDecline;
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.SITE_URL || '').replace(/\/$/, '');
+    if (baseUrl) {
+      try {
+        const code = generateShortCode();
+        await appendShortLink(code, longAccept, longDecline, requestId);
+        acceptLink = `${baseUrl}/s/${code}/accept`;
+        declineLink = `${baseUrl}/s/${code}/decline`;
+      } catch (shortErr) {
+        console.error('Short link save failed, using long URLs:', shortErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,

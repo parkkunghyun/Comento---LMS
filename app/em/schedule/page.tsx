@@ -299,13 +299,13 @@ export default function EMSchedulePage() {
 
           {/* 전체 기업교육 일정 또는 강사별 캘린더 */}
           {selectedInstructor ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6 w-full max-w-full">
               <div className="mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">
                   {instructors.find((i) => i.email === selectedInstructor)?.name || '강사'} 캘린더
                 </h3>
                 <p className="text-sm text-gray-600">
-                  강사의 기업교육 일정과 개인 일정을 확인할 수 있습니다
+                  날짜를 클릭하면 해당 날짜의 일정이 오른쪽에 표시됩니다.
                 </p>
               </div>
               <Calendar
@@ -314,11 +314,11 @@ export default function EMSchedulePage() {
               />
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6 w-full max-w-full">
               <div className="mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">전체 기업교육 일정</h3>
                 <p className="text-sm text-gray-600">
-                  모든 강사의 기업교육 일정을 확인할 수 있습니다
+                  날짜를 클릭하면 해당 날짜의 교육 일정이 오른쪽에 표시됩니다.
                 </p>
               </div>
               <Calendar apiEndpoint="/api/em/calendar" variant="business" educationOnly />

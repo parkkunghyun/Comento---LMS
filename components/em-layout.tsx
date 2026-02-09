@@ -38,8 +38,8 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const newExpanded = new Set<string>();
     
-    // 강사 섭외 메뉴 확인
-    if (pathname.startsWith('/em/recruitment')) {
+    // 강사 섭외 메뉴 확인 (기업교육 + B2U)
+    if (pathname.startsWith('/em/recruitment') || pathname.startsWith('/em/b2u-recruitment')) {
       newExpanded.add('instructor-recruitment');
     }
     
@@ -94,7 +94,11 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
         },
         { 
           href: '/em/recruitment/create', 
-          label: '섭외 요청 생성',
+          label: '기업교육 섭외요청',
+        },
+        { 
+          href: '/em/b2u-recruitment/create', 
+          label: 'B2U 섭외요청',
         },
       ]
     },

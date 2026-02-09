@@ -34,6 +34,8 @@ interface CalendarProps {
   variant?: 'default' | 'business'; // 색감/강조 방식
   /** true면 기업교육 일정만 표시 (강의 불가/선호 개인 일정 제외) - EM 전체 기업교육 일정용 */
   educationOnly?: boolean;
+  /** true면 강사 본인 캘린더: 그리드에 강사 이름 숨김, 상세 패널은 캘린더 옆에 배치 */
+  instructorView?: boolean;
 }
 
 export default function Calendar({
@@ -45,6 +47,7 @@ export default function Calendar({
   filteredEvents,
   variant = 'default',
   educationOnly = false,
+  instructorView = false,
 }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -193,9 +196,9 @@ export default function Calendar({
   const isBusiness = variant === 'business';
 
   return (
-    <div className="flex gap-6">
-      {/* 캘린더 */}
-      <div className="flex-[2] max-w-2xl bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
+    <div className={`flex gap-6 flex-1 min-h-0 ${instructorView ? 'flex-row' : 'flex-col'}`}>
+      {/* 캘린더 - 강사 뷰면 옆에 상세 패널, EM이면 아래에 상세 패널 */}
+      <div className={`bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 ${instructorView ? 'flex-[4] min-w-0 max-w-5xl' : 'w-full'}`}>
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">일정 캘린더</h3>
             <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mb-4">
@@ -257,8 +260,8 @@ export default function Calendar({
               ))}
             </div>
 
-            {/* 캘린더 그리드 */}
-            <div className="grid grid-cols-7 gap-2">
+            {/* 캘린더 그리드 - 최소 높이로 셀 크기 확보 */}
+            <div className="grid grid-cols-7 gap-2 min-h-[380px]">
               {calendarDays.map((date, index) => {
                 if (!date) return null;
 
@@ -299,7 +302,7 @@ export default function Calendar({
                 };
                 const hasBlockedEvents = dayEvents.some(isBlockedEvent);
                 const hasPreferredEvents = dayEvents.some(isPreferredEvent);
-                const hasEducationEvents = dayEvents.some((event) => {
+                const educationDayEvents = dayEvents.filter((event) => {
                   const isPersonal =
                     event.isPersonal ||
                     event.id?.startsWith('personal-') ||
@@ -308,6 +311,17 @@ export default function Calendar({
                     event.description === '강의 선호';
                   return !isPersonal;
                 });
+                const hasEducationEvents = educationDayEvents.length > 0;
+                // 해당 일자 기업교육 일정의 강사 이름 수집 (중복 제거)
+                const dayInstructorNames = Array.from(
+                  new Set(
+                    educationDayEvents.flatMap((e) =>
+                      (e.attendees || [])
+                        .filter((a) => a.instructorName)
+                        .map((a) => a.instructorName!)
+                    )
+                  )
+                ).filter(Boolean);
                 // 강의 불가 날짜 확인 (props로 전달된 날짜 또는 events에서 확인)
                 const hasBlockedDate = personalEventDates.includes(dateStr) || hasBlockedEvents;
                 // 강의 선호 날짜 확인 (props로 전달된 날짜 또는 events에서 확인)
@@ -320,7 +334,7 @@ export default function Calendar({
                     key={index}
                     onClick={() => setSelectedDate(date)}
                     className={`
-                      aspect-square flex flex-col items-center justify-center
+                      aspect-square flex flex-col items-center justify-start pt-1.5
                       rounded-lg transition-all duration-200 relative
                       ${!isCurrentMonth ? 'text-gray-300' : 'text-gray-700'}
                       ${isToday && !isSelected && !hasEvents && !hasEducationDate && !hasBlockedDate && !hasPreferredDate
@@ -357,7 +371,7 @@ export default function Calendar({
                         : ''}
                     `}
                   >
-                    <span className={`relative z-10 text-sm font-medium ${isSelected ? 'text-white' : ''}`}>
+                    <span className={`relative z-10 text-sm font-medium self-center ${isSelected ? 'text-white' : ''}`}>
                       {date.getDate()}
                     </span>
                     {/* 강의 불가: X 표시 (강사/EM 공통) - 셀 중앙에 크게 표시 */}
@@ -372,15 +386,25 @@ export default function Calendar({
                         ✕
                       </span>
                     )}
-                    {/* 하단 점 표시 (기업교육/선호) */}
-                    {(hasEducationDate || hasPreferredDate || hasEducationEvents || hasPreferredEvents) && isCurrentMonth && (
-                      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 items-center justify-center">
-                        {(hasEducationDate || hasEducationEvents) && (
-                          <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-sky-500'}`} />
-                        )}
-                        {(hasPreferredDate || hasPreferredEvents) && (
-                          <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-700'}`} />
-                        )}
+                    {/* 하단: 기업교육일 때 강사 성함만 표시 (강사 본인 뷰에서는 숨김) */}
+                    {!instructorView && (hasEducationDate || hasPreferredDate || hasEducationEvents || hasPreferredEvents) && isCurrentMonth && dayInstructorNames.length > 0 && (
+                      <div className="absolute left-0 right-0 bottom-4 flex flex-col items-center justify-end min-h-[2.5rem]">
+                        <div
+                          className={`text-center leading-snug px-0.5 max-w-full overflow-hidden ${
+                            isSelected ? 'text-white' : 'text-gray-700'
+                          }`}
+                          style={{ fontSize: '13px', fontWeight: 700 }}
+                          title={dayInstructorNames.join(', ')}
+                        >
+                          {dayInstructorNames.slice(0, 3).map((name, i) => (
+                            <div key={i} className="truncate">
+                              {name}
+                            </div>
+                          ))}
+                          {dayInstructorNames.length > 3 && (
+                            <div>+{dayInstructorNames.length - 3}명</div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </button>
@@ -391,15 +415,15 @@ export default function Calendar({
         )}
       </div>
 
-      {/* 선택된 날짜 상세 정보 */}
-      <div className="flex-1 min-w-[400px] bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
+      {/* 선택한 날짜의 교육 일정 상세 (강사 뷰는 옆에, EM은 아래에 표시) */}
+      <div className={`bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 overflow-auto ${instructorView ? 'flex-1 min-w-[280px] max-w-sm' : 'w-full'}`}>
         {selectedDate ? (
           <>
             <h3 className="text-xl font-semibold text-gray-900 mb-1">
-              {formatDate(selectedDate)}
+              {formatDate(selectedDate)} 일정
             </h3>
             <p className="text-sm text-gray-500 mb-6">
-              선택한 날짜의 일정 정보
+              선택한 날짜의 교육 일정입니다.
             </p>
 
             {selectedDateEvents.length === 0 ? (
@@ -461,25 +485,31 @@ export default function Calendar({
                       </div>
                     )}
                     {event.description && (
-                      <p className="text-sm text-gray-600 mb-3 leading-relaxed">{event.description}</p>
+                      <div
+                        className="text-sm text-gray-600 mb-3 leading-relaxed [&_b]:font-semibold [&_br]:block"
+                        dangerouslySetInnerHTML={{ __html: event.description }}
+                      />
                     )}
-                    {event.attendees && event.attendees.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-xs font-medium text-gray-700 mb-2">참석 강사</p>
-                        <div className="space-y-1">
-                          {event.attendees
-                            .filter((attendee) => attendee.instructorName) // 강사 이름이 있는 경우만 표시
-                            .map((attendee, idx) => (
-                              <div
-                                key={idx}
-                                className="text-sm text-gray-700"
-                              >
-                                강사 : {attendee.instructorName}
+                    {event.attendees && event.attendees.length > 0 && (() => {
+                      const instructorNames = event.attendees
+                        .filter((a) => a.instructorName)
+                        .map((a) => a.instructorName!);
+                      if (instructorNames.length === 0) return null;
+                      return (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <p className="text-sm font-semibold text-gray-800 mb-2">
+                            강사 {instructorNames.length > 1 ? `(${instructorNames.length}명)` : ''}
+                          </p>
+                          <div className="space-y-1.5">
+                            {instructorNames.map((name, idx) => (
+                              <div key={idx} className="text-base text-gray-800">
+                                · {name}
                               </div>
                             ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                   );
                 })}
@@ -489,9 +519,9 @@ export default function Calendar({
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-gray-400">
             <svg className="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7 19l-4-2 2-4M14 2l4 4M3 7l4 4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <p className="text-sm">날짜를 선택하면 상세 정보를 볼 수 있습니다.</p>
+            <p className="text-sm">캘린더에서 날짜를 선택하면 해당 날짜의 일정이 아래에 표시됩니다.</p>
           </div>
         )}
       </div>

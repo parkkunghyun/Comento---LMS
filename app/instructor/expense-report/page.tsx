@@ -1,6 +1,6 @@
 'use client';
 
-const EXPENSE_REPORT_TYPEFORM_URL = 'https://comento.typeform.com/to/lF0bn4CM';
+const EXPENSE_REPORT_TYPEFORM_URL = 'https://comento.typeform.com/to/oj8MSYt8';
 
 export default function InstructorExpenseReportPage() {
   return (

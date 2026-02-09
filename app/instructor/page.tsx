@@ -412,6 +412,7 @@ export default function InstructorCalendarPage() {
             apiEndpoint="/api/instructor/calendar"
             personalEventDates={blockedDates}
             preferredEventDates={preferredDates}
+            instructorView
           />
         );
       })()}

@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import { randomBytes } from 'crypto';
 
 /**
  * 시트 셀에 적힌 이메일 문자열을 파싱합니다.
@@ -34,6 +35,10 @@ const INSTRUCTOR_STATUS_SHEET_NAME = () => process.env.GOOGLE_INSTRUCTOR_STATUS_
 const IMPROVEMENT_SHEET_SPREADSHEET_ID = () => process.env.GOOGLE_INSTRUCTOR_SPREADSHEET_ID || process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
 const IMPROVEMENT_SHEET_GID = 1929592205;
 const IMPROVEMENT_SHEET_NAME = () => process.env.GOOGLE_IMPROVEMENT_SHEET_NAME || '';
+
+/** 섭외 짧은 링크 시트: 같은 스프레드시트 내 시트명 "섭외_짧은링크" - A=code, B=accept_url, C=decline_url, D=request_id (시트는 미리 생성 필요) */
+const SHORT_LINK_SHEET_SPREADSHEET_ID = () => process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
+const SHORT_LINK_SHEET_NAME = '섭외_짧은링크';
 
 /**
  * EM 정보를 Google Spreadsheet에서 조회합니다 (이름과 비밀번호로).
@@ -1480,6 +1485,115 @@ export async function createRecruitmentRequest(
 }
 
 /**
+ * B2U 섭외 요청을 외부강사_섭외_로그 시트에 1건 추가합니다.
+ * 시트 구조는 createRecruitmentRequest와 동일. 기업명은 'B2U', 교육명은 대학교육 제목.
+ */
+export async function createB2URecruitmentRequest(
+  requestId: string,
+  educationDate: string,
+  educationTitle: string,
+  instructorName: string,
+  담당EM: string
+): Promise<{ acceptLink: string; declineLink: string }> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
+  const sheetName = '외부강사_섭외_로그';
+
+  const gasBaseUrl = (process.env.GAS_RECRUITMENT_BASE_URL || '').trim() || 'https://script.google.com/macros/s/AKfycbw34JuzTA7N4qEPOGAsut1cffhG5A_GWH16FeqvYDuy9yhE6FQY8_7mG-K9axprUCNS/exec';
+  const acceptLink = `${gasBaseUrl}?action=accept&requestId=${requestId}`;
+  const declineLink = `${gasBaseUrl}?action=decline&requestId=${requestId}`;
+
+  const now = new Date();
+  const requestMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const values: any[][] = [
+    [
+      requestId,
+      'B2U',
+      educationTitle || '',
+      educationDate || '',
+      instructorName,
+      'REQUESTED',
+      '',
+      '',
+      담당EM || '',
+      requestMonth,
+    ],
+  ];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `${sheetName}!A:Z`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values },
+  });
+
+  return { acceptLink, declineLink };
+}
+
+const SHORT_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+
+/**
+ * 섭외 짧은 링크용 6자리 코드 생성 (혼동 가능 문자 제외: I,O,0,1,l 제외)
+ */
+export function generateShortCode(): string {
+  let code = '';
+  const bytes = randomBytes(6);
+  for (let i = 0; i < 6; i++) {
+    code += SHORT_CODE_CHARS[bytes[i]! % SHORT_CODE_CHARS.length];
+  }
+  return code;
+}
+
+/**
+ * 짧은 링크 매핑 저장 (시트 "섭외_짧은링크" 필요: A=code, B=accept_url, C=decline_url, D=request_id)
+ */
+export async function appendShortLink(
+  code: string,
+  acceptUrl: string,
+  declineUrl: string,
+  requestId: string
+): Promise<void> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = SHORT_LINK_SHEET_SPREADSHEET_ID();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `${SHORT_LINK_SHEET_NAME}!A:D`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: {
+      values: [[code, acceptUrl, declineUrl, requestId]],
+    },
+  });
+}
+
+/**
+ * 짧은 코드로 수락/거절 실제 URL 조회
+ */
+export async function getShortLinkByCode(
+  code: string
+): Promise<{ acceptUrl: string; declineUrl: string } | null> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = SHORT_LINK_SHEET_SPREADSHEET_ID();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${SHORT_LINK_SHEET_NAME}!A:D`,
+  });
+  const rows = response.data.values;
+  if (!rows || rows.length === 0) return null;
+  const normalized = code.trim();
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if ((row[0] || '').trim() === normalized) {
+      return {
+        acceptUrl: (row[1] || '').trim(),
+        declineUrl: (row[2] || '').trim(),
+      };
+    }
+  }
+  return null;
+}
+
+/**
  * 스프레드시트에서 gid(시트 ID)에 해당하는 시트의 제목을 반환합니다.
  */
 async function getSheetTitleByGid(spreadsheetId: string, gid: number): Promise<string> {
@@ -1522,6 +1636,48 @@ export async function appendImprovementFeedback(
       values: [[educationDate, companyName || '', writtenAtStr, improvementText || '', mentorName]],
     },
   });
+}
+
+export interface ImprovementFeedbackRow {
+  educationDate: string;
+  companyName: string;
+  writtenAt: string;
+  improvementText: string;
+  mentorName: string;
+}
+
+/**
+ * 강사 개선점(피드백) 시트에서 전체 목록을 조회합니다.
+ * 시트 구조: 교육일(A) | 기업명(B) | 작성일(C) | 개선될 점(D) | 멘토(E)
+ */
+export async function getImprovementFeedbackList(): Promise<ImprovementFeedbackRow[]> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = IMPROVEMENT_SHEET_SPREADSHEET_ID();
+  let sheetName = IMPROVEMENT_SHEET_NAME().trim();
+  if (!sheetName) {
+    sheetName = await getSheetTitleByGid(spreadsheetId, IMPROVEMENT_SHEET_GID);
+  }
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A:E`,
+  });
+
+  const rows = response.data.values;
+  if (!rows || rows.length === 0) return [];
+
+  const list: ImprovementFeedbackRow[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    list.push({
+      educationDate: (row[0] || '').trim(),
+      companyName: (row[1] || '').trim(),
+      writtenAt: (row[2] || '').trim(),
+      improvementText: (row[3] || '').trim(),
+      mentorName: (row[4] || '').trim(),
+    });
+  }
+  return list;
 }
 
 /**
