@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { randomUUID } from 'crypto';
-import {
-  createB2URecruitmentRequest,
-  generateShortCode,
-  appendShortLink,
-} from '@/lib/google-sheets';
+import { createB2URecruitmentRequest } from '@/lib/google-sheets';
 
 /**
  * B2U 섭외 요청 생성 API
@@ -54,27 +50,13 @@ export async function POST(request: NextRequest) {
     const uuid = randomUUID().replace(/-/g, '').toUpperCase();
     const requestId = `R-${uuid}`;
 
-    const { acceptLink: longAccept, declineLink: longDecline } = await createB2URecruitmentRequest(
+    const { acceptLink, declineLink } = await createB2URecruitmentRequest(
       requestId,
       educationDate.trim(),
       educationTitle.trim(),
       instructorName.trim(),
       user.email
     );
-
-    let acceptLink = longAccept;
-    let declineLink = longDecline;
-    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.SITE_URL || '').replace(/\/$/, '');
-    if (baseUrl) {
-      try {
-        const code = generateShortCode();
-        await appendShortLink(code, longAccept, longDecline, requestId);
-        acceptLink = `${baseUrl}/s/${code}/accept`;
-        declineLink = `${baseUrl}/s/${code}/decline`;
-      } catch (shortErr) {
-        console.error('B2U short link save failed, using long URLs:', shortErr);
-      }
-    }
 
     return NextResponse.json({
       success: true,
