@@ -21,10 +21,10 @@ export async function GET(request: NextRequest) {
     const timeMin = searchParams.get('timeMin') || undefined;
     const timeMax = searchParams.get('timeMax') || undefined;
 
-    // 강사정보 시트에서 해당 강사의 이메일 셀 조회 (복수 이메일이면 모두 사용)
+    // 강사정보 시트에서 해당 강사의 이메일 셀 조회 (A열 "a@x.com, b@y.com" 복수 이메일이면 모두 사용)
     const emailCell = await getInstructorEmailCellByLoginEmail(user.email);
-    const instructorEmails = emailCell ? parseEmailCell(emailCell) : [user.email.trim().toLowerCase()];
-    if (instructorEmails.length === 0) instructorEmails.push(user.email.trim().toLowerCase());
+    let instructorEmails = emailCell ? parseEmailCell(emailCell) : parseEmailCell(user.email);
+    if (instructorEmails.length === 0) instructorEmails = [user.email.trim().toLowerCase()];
 
     // 참석자에 포함된 일정 = 해당 강사 교육일 → 각 이메일로 조회 후 합침
     const calendarPromises = instructorEmails.map((email) =>

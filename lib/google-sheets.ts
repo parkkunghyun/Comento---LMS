@@ -763,13 +763,17 @@ export async function getInstructorSettlements(instructorName: string): Promise<
  */
 /**
  * 강사정보 시트에서 로그인 이메일로 해당 강사의 이메일 셀 값(A열)을 조회합니다.
- * A열이 "e1, e2"처럼 복수 이메일이면 그대로 반환해, 일정 조회 시 두 이메일 모두 사용할 수 있게 합니다.
+ * A열이 "yuho89@gmail.com, frendjoo@hanmail.net"처럼 한 강사에 복수 이메일이면 그대로 반환해,
+ * 일정 조회 시 두 이메일 모두 사용할 수 있게 합니다.
+ * 로그인 이메일이 단일 주소이거나 "a@x.com, b@y.com" 전체 문자열이어도 매칭됩니다.
  */
 export async function getInstructorEmailCellByLoginEmail(loginEmail: string): Promise<string | null> {
   const sheets = getGoogleSheetsClient();
   const spreadsheetId = INSTRUCTOR_LIST_SPREADSHEET_ID();
   const sheetName = INSTRUCTOR_LIST_SHEET_NAME();
-  const search = loginEmail.trim().toLowerCase();
+  const raw = loginEmail.trim().toLowerCase().replace(/^mailto:/, '');
+  const loginEmails = parseEmailCell(raw);
+  const loginSet = new Set(loginEmails.length > 0 ? loginEmails : [raw]);
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -779,9 +783,11 @@ export async function getInstructorEmailCellByLoginEmail(loginEmail: string): Pr
     if (!rows || rows.length < 2) return null;
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      const emailCell = String(row[0] || '').trim();
-      const emails = parseEmailCell(emailCell);
-      if (emails.some((e) => e === search)) return emailCell;
+      const emailCell = String(row[0] ?? '').trim();
+      if (!emailCell) continue;
+      const cellEmails = parseEmailCell(emailCell);
+      const hasMatch = cellEmails.some((e) => loginSet.has(e));
+      if (hasMatch) return emailCell;
     }
     return null;
   } catch (error) {
