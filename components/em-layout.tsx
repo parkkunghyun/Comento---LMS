@@ -34,21 +34,9 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
       });
   }, [router]);
 
-  // 현재 경로에 따라 메뉴 자동 확장
+  // 현재 경로에 따라 메뉴 자동 확장 (필요 시 사용)
   useEffect(() => {
-    const newExpanded = new Set<string>();
-    
-    // 강사 섭외 메뉴 확인 (기업교육 + B2U)
-    if (pathname.startsWith('/em/recruitment') || pathname.startsWith('/em/b2u-recruitment')) {
-      newExpanded.add('instructor-recruitment');
-    }
-    
-    // 실습코치 섭외 메뉴 확인
-    if (pathname.startsWith('/em/coach/recruitment')) {
-      newExpanded.add('coach-recruitment');
-    }
-    
-    setExpandedMenus(newExpanded);
+    setExpandedMenus(new Set());
   }, [pathname]);
 
 
@@ -79,47 +67,14 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
   };
 
   const menuItems = [
-    {
-      key: 'instructor-recruitment',
-      label: '강사 섭외',
+    { 
+      href: '/em', 
+      label: '대시보드',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
         </svg>
-      ),
-      children: [
-        { 
-          href: '/em/recruitment/dashboard', 
-          label: '섭외 현황 대시보드',
-        },
-        { 
-          href: '/em/recruitment/create', 
-          label: '기업교육 섭외요청',
-        },
-        { 
-          href: '/em/b2u-recruitment/create', 
-          label: 'B2U 섭외요청',
-        },
-      ]
-    },
-    {
-      key: 'coach-recruitment',
-      label: '실습코치 섭외',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      ),
-      children: [
-        { 
-          href: '/em/coach/recruitment/dashboard', 
-          label: '섭외 현황 대시보드',
-        },
-        { 
-          href: '/em/coach/recruitment/create', 
-          label: '섭외 요청 생성',
-        },
-      ]
+      )
     },
     { 
       href: '/em/schedule', 
@@ -140,29 +95,11 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
       )
     },
     { 
-      href: '/em/feedback', 
-      label: '피드백 관리',
+      href: '/em/satisfaction', 
+      label: '강의 만족도',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-        </svg>
-      )
-    },
-    { 
-      href: '/em/settlement', 
-      label: '정산 관리',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
-    },
-    { 
-      href: '/em/expense-reports', 
-      label: '지출결의서 관리',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
         </svg>
       )
     },
@@ -201,11 +138,11 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-3">MAIN MENU</p>
             <ul className="space-y-1">
               {menuItems.map((item) => {
-                if ('children' in item && item.children) {
-                  // 하위 메뉴가 있는 경우
-                  const menuKey = item.key || '';
+                if ('children' in item && Array.isArray(item.children)) {
+                  // 하위 메뉴가 있는 경우 (key 없으면 href로 구분)
+                  const menuKey = ('key' in item && (item as { key?: string }).key) || item.href || '';
                   const isExpanded = expandedMenus.has(menuKey);
-                  const hasActiveChild = item.children.some(child => pathname === child.href);
+                  const hasActiveChild = item.children.some((child: { href: string }) => pathname === child.href);
                   
                   return (
                     <li key={menuKey}>

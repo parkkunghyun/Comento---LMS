@@ -83,9 +83,10 @@ export default function EMSchedulePage() {
     loadInstructors();
   }, []);
 
+  // 전체 일정 로드 (캘린더/리스트 공통, 기업 검색용)
   useEffect(() => {
-    if (viewMode === 'list') loadSchedules();
-  }, [viewMode]);
+    loadSchedules();
+  }, []);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -267,9 +268,50 @@ export default function EMSchedulePage() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
-            전체 일정
+            기업교육 일정 확인 리스트
           </div>
         </button>
+      </div>
+
+      {/* 기업 검색 - 캘린더/리스트 공통 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-5">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              placeholder="기업명, 고객사명, 클래스명, 강사명으로 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-3 pl-11 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all bg-white"
+            />
+            <svg
+              className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="px-5 py-3 text-sm font-semibold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all shadow-sm hover:shadow-md"
+            >
+              초기화
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <div className="mt-3 px-3 py-2 bg-blue-50 rounded-lg">
+            <div className="text-sm text-gray-700">
+              검색 결과: <span className="font-bold text-gray-900">{filteredEvents.length}건</span>
+              {viewMode === 'calendar' && (
+                <span className="ml-2 text-gray-500">(캘린더에 해당 일정만 표시)</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 캘린더 뷰 */}
@@ -297,8 +339,24 @@ export default function EMSchedulePage() {
             </select>
           </div>
 
-          {/* 전체 기업교육 일정 또는 강사별 캘린더 */}
-          {selectedInstructor ? (
+          {/* 기업 검색 시: 해당 일정만 캘린더에 표시 / 검색 없으면 강사별 또는 전체 */}
+          {searchQuery.trim() ? (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6 w-full max-w-full">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">검색 결과 캘린더</h3>
+                <p className="text-sm text-gray-600">
+                  &quot;{searchQuery}&quot; 검색 결과 {filteredEvents.length}건이 캘린더에 표시됩니다.
+                </p>
+              </div>
+              <Calendar
+                apiEndpoint="/api/em/calendar"
+                variant="business"
+                educationOnly
+                filteredEvents={filteredEvents}
+                showCompanyLabelInCells
+              />
+            </div>
+          ) : selectedInstructor ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6 w-full max-w-full">
               <div className="mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">
@@ -311,6 +369,7 @@ export default function EMSchedulePage() {
               <Calendar
                 apiEndpoint={`/api/em/instructor-calendar?instructorEmail=${encodeURIComponent(selectedInstructor)}`}
                 variant="business"
+                showCompanyLabelInCells
               />
             </div>
           ) : (
@@ -346,45 +405,7 @@ export default function EMSchedulePage() {
             </div>
           </div>
 
-          {/* 검색 바 */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  placeholder="고객사명, 클래스명, 강사명, DRI로 검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-3 pl-11 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all bg-white"
-                />
-                <svg
-                  className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="px-5 py-3 text-sm font-semibold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all shadow-sm hover:shadow-md"
-                >
-                  초기화
-                </button>
-              )}
-            </div>
-            {searchQuery && (
-              <div className="mt-3 px-3 py-2 bg-blue-50 rounded-lg">
-                <div className="text-sm text-gray-700">
-                  검색 결과: <span className="font-bold text-gray-900">{filteredEvents.length}건</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 일정 목록 */}
+          {/* 일정 목록 (검색은 상단 공통 검색 바 사용) */}
           {loadingSchedules ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-16 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gray-700 mx-auto mb-4"></div>

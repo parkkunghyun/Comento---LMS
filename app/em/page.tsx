@@ -7,8 +7,8 @@ export default function EMDashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // 섭외 현황 대시보드로 리다이렉트
-    router.replace('/em/recruitment/dashboard');
+    // 일정 확인으로 리다이렉트
+    router.replace('/em/schedule');
   }, [router]);
 
   return (

@@ -1330,6 +1330,52 @@ export async function updateInstructorCell(
   }
 }
 
+/** 강사 실적 시트: 1qtyBpb2... (강사 일정/만족도 관리 대시보드) 내 "강사 실적" - A=강사명, B=주요 고객사, C=출강 횟수 */
+const INSTRUCTOR_PERFORMANCE_SHEET_NAME = '강사 실적';
+const INSTRUCTOR_PERFORMANCE_SPREADSHEET_ID = () =>
+  process.env.GOOGLE_SATISFACTION_SPREADSHEET_ID ||
+  process.env.GOOGLE_INSTRUCTOR_PERFORMANCE_SPREADSHEET_ID ||
+  '1qtyBpb2GHAJPDBfiQl3itPl73i0VuZlR8ZjUQUGBHxg';
+
+export interface InstructorPerformanceRow {
+  name: string;
+  mainClients: string;
+  sessionCount: string;
+}
+
+/**
+ * 강사 실적 시트에서 고객사·출강 횟수 조회 (강사 일정/만족도 대시보드 스프레드시트)
+ */
+export async function getInstructorPerformance(): Promise<InstructorPerformanceRow[]> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = INSTRUCTOR_PERFORMANCE_SPREADSHEET_ID();
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${INSTRUCTOR_PERFORMANCE_SHEET_NAME}!A:C`,
+    });
+    const rows = response.data.values || [];
+    if (rows.length < 2) return [];
+
+    const result: InstructorPerformanceRow[] = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const name = (row[0] ?? '').trim();
+      if (!name) continue;
+      result.push({
+        name,
+        mainClients: (row[1] ?? '').trim(),
+        sessionCount: (row[2] ?? '').trim(),
+      });
+    }
+    return result;
+  } catch (error) {
+    console.error('Error fetching instructor performance:', error);
+    return [];
+  }
+}
+
 /**
  * 교육 일정 데이터 타입 (class_schedule(등록) 시트)
  */
