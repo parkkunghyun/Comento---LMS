@@ -1659,6 +1659,56 @@ async function getSheetTitleByGid(spreadsheetId: string, gid: number): Promise<s
   return title;
 }
 
+/** 대시보드용 강사 시트 gid (이메일, 이름, 암호코드, 내부/외부) */
+const DASHBOARD_INSTRUCTOR_SHEET_GID = 1939207226;
+const DASHBOARD_INSTRUCTOR_SPREADSHEET_ID = '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
+
+export interface DashboardInstructorMap {
+  emailToName: Record<string, string>;
+  externalEmails: Set<string>;
+  /** 강사 이름 → 외부 여부 (D열 '외부'면 true) */
+  nameToIsExternal: Record<string, boolean>;
+}
+
+/**
+ * 지정한 gid 시트에서 강사 목록을 읽습니다.
+ * 컬럼: A=이메일, B=이름, C=암호코드, D=내부/외부
+ * 이메일 셀은 쉼표/줄바꿈으로 복수 가능 (parseEmailCell 사용).
+ * @returns emailToName(이메일→이름), externalEmails(D열 '외부'인 강사 이메일 집합)
+ */
+export async function getInstructorsFromSheetByGid(
+  spreadsheetId: string = DASHBOARD_INSTRUCTOR_SPREADSHEET_ID,
+  gid: number = DASHBOARD_INSTRUCTOR_SHEET_GID
+): Promise<DashboardInstructorMap> {
+  const sheets = getGoogleSheetsClient();
+  const sheetName = await getSheetTitleByGid(spreadsheetId, gid);
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A:D`,
+  });
+  const rows = response.data.values || [];
+  const emailToName: Record<string, string> = {};
+  const externalEmails = new Set<string>();
+  const nameToIsExternal: Record<string, boolean> = {};
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i] || [];
+    const emailCell = (row[0] ?? '').toString().trim();
+    const name = (row[1] ?? '').toString().trim();
+    const affiliation = (row[3] ?? '').toString().trim();
+    if (!emailCell || !name) continue;
+    const emails = parseEmailCell(emailCell);
+    const isExternal = affiliation === '외부';
+    nameToIsExternal[name] = isExternal;
+    emails.forEach((email) => {
+      if (!email) return;
+      emailToName[email] = name;
+      if (isExternal) externalEmails.add(email);
+    });
+  }
+  return { emailToName, externalEmails, nameToIsExternal };
+}
+
 /**
  * 강사 개선점 시트에 한 행을 추가합니다.
  * 시트 구조: 교육일(A) | 기업명(B) | 작성일(C) | 개선될 점(D) | 멘토(E)
