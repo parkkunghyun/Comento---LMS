@@ -221,71 +221,71 @@ export default function EMSchedulePage() {
   }
 
   return (
-    <div className="space-y-6 pb-8">
-      {/* 헤더 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="space-y-4 pb-6">
+      {/* 헤더 - 컴팩트 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 bg-gray-900 rounded-lg flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">일정 확인</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              강사별 기업교육 일정과 개인 일정(불가/선호)을 함께 확인할 수 있습니다.
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold text-gray-900">일정 확인</h1>
+            <p className="text-xs text-gray-500 truncate">
+              강사별 기업교육 일정과 개인 일정(불가/선호) 확인
             </p>
           </div>
         </div>
       </div>
 
-      {/* 뷰 모드 전환 탭 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-2 flex items-center gap-2">
+      {/* 뷰 모드 전환 탭 - 컴팩트 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-1.5 flex items-center gap-1">
         <button
           onClick={() => setViewMode('calendar')}
-          className={`flex-1 px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 ${
+          className={`flex-1 px-4 py-2 text-xs font-semibold rounded-md transition-all ${
             viewMode === 'calendar'
               ? 'bg-gray-900 text-white'
-              : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+              : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
-          <div className="flex items-center justify-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span className="flex items-center justify-center gap-1.5">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             캘린더
-          </div>
+          </span>
         </button>
         <button
           onClick={() => setViewMode('list')}
-          className={`flex-1 px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 ${
+          className={`flex-1 px-4 py-2 text-xs font-semibold rounded-md transition-all ${
             viewMode === 'list'
               ? 'bg-gray-900 text-white'
-              : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+              : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
-          <div className="flex items-center justify-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span className="flex items-center justify-center gap-1.5">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
-            기업교육 일정 확인 리스트
-          </div>
+            일정 리스트
+          </span>
         </button>
       </div>
 
-      {/* 기업 검색 - 캘린더/리스트 공통 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex-1 relative">
+      {/* 기업 검색 - 컴팩트 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 relative min-w-0">
             <input
               type="text"
-              placeholder="기업명, 고객사명, 클래스명, 강사명으로 검색..."
+              placeholder="기업명, 클래스명, 강사명 검색..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 pl-11 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all bg-white"
+              className="w-full px-3 py-2 pl-9 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-400 bg-white"
             />
             <svg
-              className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -296,31 +296,27 @@ export default function EMSchedulePage() {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="px-5 py-3 text-sm font-semibold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all shadow-sm hover:shadow-md"
+              className="shrink-0 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
             >
               초기화
             </button>
           )}
         </div>
         {searchQuery && (
-          <div className="mt-3 px-3 py-2 bg-blue-50 rounded-lg">
-            <div className="text-sm text-gray-700">
-              검색 결과: <span className="font-bold text-gray-900">{filteredEvents.length}건</span>
-              {viewMode === 'calendar' && (
-                <span className="ml-2 text-gray-500">(캘린더에 해당 일정만 표시)</span>
-              )}
-            </div>
+          <div className="mt-2 px-2.5 py-1.5 bg-blue-50 rounded text-xs text-gray-700">
+            검색 결과 <span className="font-semibold text-gray-900">{filteredEvents.length}건</span>
+            {viewMode === 'calendar' && <span className="text-gray-500 ml-1">(캘린더에만 표시)</span>}
           </div>
         )}
       </div>
 
       {/* 캘린더 뷰 */}
       {viewMode === 'calendar' && (
-        <div className="space-y-6">
-          {/* 강사 선택 */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="space-y-4">
+          {/* 강사 선택 - 컴팩트 */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 px-4 py-3">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 mb-2">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               강사 선택
@@ -328,7 +324,7 @@ export default function EMSchedulePage() {
             <select
               value={selectedInstructor}
               onChange={(e) => setSelectedInstructor(e.target.value)}
-              className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-gray-400 transition-all appearance-none bg-white cursor-pointer"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-gray-300 focus:border-gray-400 appearance-none bg-white cursor-pointer"
             >
               <option value="">전체 기업교육 일정</option>
               {instructors.map((instructor) => (
@@ -339,14 +335,12 @@ export default function EMSchedulePage() {
             </select>
           </div>
 
-          {/* 기업 검색 시: 해당 일정만 캘린더에 표시 / 검색 없으면 강사별 또는 전체 */}
+          {/* 캘린더 영역 - 패딩 축소 */}
           {searchQuery.trim() ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6 w-full max-w-full">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">검색 결과 캘린더</h3>
-                <p className="text-sm text-gray-600">
-                  &quot;{searchQuery}&quot; 검색 결과 {filteredEvents.length}건이 캘린더에 표시됩니다.
-                </p>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-4 w-full max-w-full">
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-900">검색 결과 캘린더</h3>
+                <p className="text-xs text-gray-500">&quot;{searchQuery}&quot; {filteredEvents.length}건</p>
               </div>
               <Calendar
                 apiEndpoint="/api/em/calendar"
@@ -357,14 +351,12 @@ export default function EMSchedulePage() {
               />
             </div>
           ) : selectedInstructor ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6 w-full max-w-full">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-4 w-full max-w-full">
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-900">
                   {instructors.find((i) => i.email === selectedInstructor)?.name || '강사'} 캘린더
                 </h3>
-                <p className="text-sm text-gray-600">
-                  날짜를 클릭하면 해당 날짜의 일정이 오른쪽에 표시됩니다.
-                </p>
+                <p className="text-xs text-gray-500">날짜 클릭 시 오른쪽에 일정 표시</p>
               </div>
               <Calendar
                 apiEndpoint={`/api/em/instructor-calendar?instructorEmail=${encodeURIComponent(selectedInstructor)}`}
@@ -373,12 +365,10 @@ export default function EMSchedulePage() {
               />
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6 w-full max-w-full">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">전체 기업교육 일정</h3>
-                <p className="text-sm text-gray-600">
-                  날짜를 클릭하면 해당 날짜의 교육 일정이 오른쪽에 표시됩니다.
-                </p>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-4 w-full max-w-full">
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-900">전체 기업교육 일정</h3>
+                <p className="text-xs text-gray-500">날짜 클릭 시 오른쪽에 일정 표시</p>
               </div>
               <Calendar apiEndpoint="/api/em/calendar" variant="business" educationOnly />
             </div>
@@ -386,41 +376,27 @@ export default function EMSchedulePage() {
         </div>
       )}
 
-      {/* 게시판 뷰 */}
+      {/* 리스트 뷰 - 컴팩트 */}
       {viewMode === 'list' && (
-        <div className="space-y-5">
-          {/* 이번달 요약 카드 */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-gray-600 mb-2">이번달 총 일정</div>
-                <div className="text-3xl font-bold text-gray-900">{thisMonthStats.total}</div>
-                <div className="text-sm text-gray-500 mt-1">건</div>
-              </div>
-              <div className="w-14 h-14 bg-gray-900 rounded-xl flex items-center justify-center">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-            </div>
+        <div className="space-y-4">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 px-4 py-3 flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-600">이번달 총 일정</span>
+            <span className="text-xl font-bold text-gray-900">{thisMonthStats.total}<span className="text-sm font-normal text-gray-500 ml-0.5">건</span></span>
           </div>
 
-          {/* 일정 목록 (검색은 상단 공통 검색 바 사용) */}
           {loadingSchedules ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-16 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gray-700 mx-auto mb-4"></div>
-              <div className="text-sm font-medium text-gray-600">일정을 불러오는 중...</div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 py-12 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-gray-600 mx-auto mb-3"></div>
+              <div className="text-xs text-gray-500">일정 불러오는 중...</div>
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-16 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 py-12 text-center">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
-              <div className="text-sm font-medium text-gray-600">
-                {searchQuery ? '검색 결과가 없습니다.' : '일정이 없습니다.'}
-              </div>
+              <div className="text-xs text-gray-500">{searchQuery ? '검색 결과가 없습니다.' : '일정이 없습니다.'}</div>
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 overflow-hidden">
@@ -428,44 +404,21 @@ export default function EMSchedulePage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        일정
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        제목
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        시간
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        강사
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        장소
-                      </th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">일정</th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">제목</th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">시간</th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">강사</th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">장소</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
                     {filteredEvents.map((event) => (
-                      <tr 
-                        key={event.id} 
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900">{formatEventDate(event)}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-semibold text-gray-900">{event.summary || '-'}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-700 font-medium">{formatEventTime(event)}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-700">{getInstructors(event)}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-600">{event.location || '-'}</div>
-                        </td>
+                      <tr key={event.id} className="hover:bg-gray-50/80">
+                        <td className="px-4 py-2.5 whitespace-nowrap text-xs font-medium text-gray-900">{formatEventDate(event)}</td>
+                        <td className="px-4 py-2.5 text-xs font-medium text-gray-900 max-w-[200px] truncate" title={event.summary || ''}>{event.summary || '-'}</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap text-xs text-gray-600">{formatEventTime(event)}</td>
+                        <td className="px-4 py-2.5 text-xs text-gray-600">{getInstructors(event)}</td>
+                        <td className="px-4 py-2.5 text-xs text-gray-500 max-w-[120px] truncate" title={event.location || ''}>{event.location || '-'}</td>
                       </tr>
                     ))}
                   </tbody>

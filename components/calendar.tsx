@@ -199,69 +199,69 @@ export default function Calendar({
   const isBusiness = variant === 'business';
 
   return (
-    <div className={`flex gap-6 flex-1 min-h-0 ${instructorView ? 'flex-row' : 'flex-col'}`}>
-      {/* 캘린더 카드 - 모던 스타일 */}
-      <div className={`bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden ${instructorView ? 'flex-[4] min-w-0 max-w-5xl' : 'w-full'}`}>
-        <div className="p-6 pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+    <div className={`flex gap-4 flex-1 min-h-0 ${instructorView ? 'flex-row' : 'flex-col'}`}>
+      {/* 캘린더 카드 - 컴팩트 */}
+      <div className={`bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden ${instructorView ? 'flex-[4] min-w-0 max-w-5xl' : 'w-full'}`}>
+        <div className="px-4 pt-3 pb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
             <div>
-              <h3 className="text-xl font-semibold text-gray-900 tracking-tight">일정 캘린더</h3>
-              <p className="text-sm text-gray-500 mt-0.5">날짜를 선택하면 상세 일정을 볼 수 있습니다</p>
+              <h3 className="text-sm font-semibold text-gray-900">일정 캘린더</h3>
+              <p className="text-xs text-gray-500">날짜 선택 시 상세 일정 표시</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={goToPreviousMonth}
-                className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
+                className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
                 aria-label="이전 달"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h4 className="min-w-[120px] text-center text-base font-semibold text-gray-900">
+              <h4 className="min-w-[90px] text-center text-sm font-semibold text-gray-900">
                 {year}년 {month + 1}월
               </h4>
               <button
                 onClick={goToNextMonth}
-                className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
+                className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
                 aria-label="다음 달"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-sm" />
-              <span>기업교육</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-sky-500" />
+              기업교육
+            </span>
             {!educationOnly && (
               <>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-5 h-5 text-red-500 font-bold text-base" aria-hidden>✕</span>
-                  <span>강의 불가</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
-                  <span>강의 선호</span>
-                </div>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-red-500 font-bold" aria-hidden>✕</span>
+                  강의 불가
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  강의 선호
+                </span>
               </>
             )}
           </div>
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-400">로딩 중...</div>
+          <div className="text-center py-8 text-xs text-gray-400">로딩 중...</div>
         ) : (
           <>
             {/* 요일 헤더 */}
-            <div className="grid grid-cols-7 gap-1 px-2 mb-1">
+            <div className="grid grid-cols-7 gap-0.5 px-2 mb-0.5">
               {weekDays.map((day, index) => (
                 <div
                   key={day}
-                  className={`text-center text-xs font-semibold py-2.5 uppercase tracking-wide ${
+                  className={`text-center text-[11px] font-semibold py-1.5 ${
                     index === 0 ? 'text-red-500' : index === 6 ? 'text-indigo-500/80' : 'text-gray-500'
                   }`}
                 >
@@ -270,8 +270,8 @@ export default function Calendar({
               ))}
             </div>
 
-            {/* 캘린더 그리드 */}
-            <div className="grid grid-cols-7 gap-1.5 px-2 pb-2 min-h-[420px]">
+            {/* 캘린더 그리드 - 셀 높이/간격 축소 */}
+            <div className="grid grid-cols-7 gap-1 px-2 pb-2 min-h-[320px]">
               {calendarDays.map((date, index) => {
                 if (!date) return null;
 
@@ -355,7 +355,7 @@ export default function Calendar({
                     key={index}
                     onClick={() => setSelectedDate(date)}
                     className={`
-                      aspect-square min-h-[72px] flex flex-col rounded-xl transition-all duration-200 relative overflow-hidden
+                      aspect-square min-h-[52px] flex flex-col rounded-lg transition-all duration-200 relative overflow-hidden
                       ${!isCurrentMonth ? 'text-gray-300 bg-gray-50/50' : 'text-gray-800'}
                       ${isToday && !isSelected && !hasEvents && !hasEducationDate && !hasBlockedDate && !hasPreferredDate
                         ? 'bg-amber-50 border-2 border-amber-300 font-semibold ring-1 ring-amber-200/50'
@@ -386,13 +386,13 @@ export default function Calendar({
                         : ''}
                     `}
                   >
-                    <span className={`relative z-10 text-sm font-semibold self-center pt-1.5 ${isSelected ? 'text-white' : ''} ${!isCurrentMonth ? 'text-gray-400' : ''}`}>
+                    <span className={`relative z-10 text-xs font-semibold self-center pt-1 ${isSelected ? 'text-white' : ''} ${!isCurrentMonth ? 'text-gray-400' : ''}`}>
                       {date.getDate()}
                     </span>
                     {/* 강의 불가: X 표시 */}
                     {(hasBlockedDate || hasBlockedEvents) && !hasEducationEvents && !hasEducationDate && isCurrentMonth && (
                       <span
-                        className={`absolute inset-0 flex items-center justify-center pointer-events-none text-2xl font-bold select-none ${
+                        className={`absolute inset-0 flex items-center justify-center pointer-events-none text-lg font-bold select-none ${
                           isSelected ? 'text-white/90' : 'text-red-400'
                         }`}
                         style={{ zIndex: 0 }}
@@ -403,10 +403,10 @@ export default function Calendar({
                     )}
                     {/* 기업교육일(EM 뷰): showCompanyLabelInCells면 [기업명], 아니면 강사 이름 2열 */}
                     {!instructorView && (hasEducationDate || hasPreferredDate || hasEducationEvents || hasPreferredEvents) && isCurrentMonth && (showCompanyLabelInCells ? dayEducationLabels.length > 0 : dayInstructorNames.length > 0) && (
-                      <div className="absolute left-0 right-0 top-8 bottom-1.5 flex flex-col items-center justify-start pointer-events-none px-0.5" title={(showCompanyLabelInCells ? dayEducationLabels : dayInstructorNames).join(', ')}>
-                        <div className={`flex gap-x-1 gap-y-1 w-full max-w-full justify-center items-center ${showCompanyLabelInCells ? 'flex-row flex-wrap' : 'grid grid-cols-2 justify-items-center text-center'} ${isSelected ? 'text-white' : 'text-gray-800'}`}>
+                      <div className="absolute left-0 right-0 top-6 bottom-1 flex flex-col items-center justify-start pointer-events-none px-0.5" title={(showCompanyLabelInCells ? dayEducationLabels : dayInstructorNames).join(', ')}>
+                        <div className={`flex gap-x-0.5 gap-y-0.5 w-full max-w-full justify-center items-center ${showCompanyLabelInCells ? 'flex-row flex-wrap' : 'grid grid-cols-2 justify-items-center text-center'} ${isSelected ? 'text-white' : 'text-gray-800'}`}>
                           {(showCompanyLabelInCells ? dayEducationLabels : dayInstructorNames).map((text, i) => (
-                            <span key={i} className={`truncate text-[13px] font-semibold leading-tight ${showCompanyLabelInCells ? 'max-w-full' : 'w-full text-center'}`} title={text}>
+                            <span key={i} className={`truncate text-[10px] font-semibold leading-tight ${showCompanyLabelInCells ? 'max-w-full' : 'w-full text-center'}`} title={text}>
                               {text}
                             </span>
                           ))}
@@ -415,10 +415,10 @@ export default function Calendar({
                     )}
                     {/* 기업교육일(강사 뷰): 해당 일정의 기업명 [기업명] 표시 */}
                     {instructorView && (hasEducationDate || hasEducationEvents) && isCurrentMonth && dayEducationLabels.length > 0 && (
-                      <div className="absolute left-0 right-0 top-8 bottom-1.5 flex flex-col items-center justify-start pointer-events-none px-0.5" title={dayEducationLabels.join(', ')}>
-                        <div className={`flex flex-row flex-wrap gap-x-1 gap-y-0 justify-center items-center w-full max-w-full ${isSelected ? 'text-white' : 'text-gray-800'}`}>
+                      <div className="absolute left-0 right-0 top-6 bottom-1 flex flex-col items-center justify-start pointer-events-none px-0.5" title={dayEducationLabels.join(', ')}>
+                        <div className={`flex flex-row flex-wrap gap-x-0.5 gap-y-0 justify-center items-center w-full max-w-full ${isSelected ? 'text-white' : 'text-gray-800'}`}>
                           {dayEducationLabels.map((label, i) => (
-                            <span key={i} className="truncate text-[13px] font-semibold leading-tight max-w-full" title={label}>
+                            <span key={i} className="truncate text-[10px] font-semibold leading-tight max-w-full" title={label}>
                               {label}
                             </span>
                           ))}
@@ -433,27 +433,25 @@ export default function Calendar({
         )}
       </div>
 
-      {/* 선택한 날짜의 교육 일정 상세 */}
-      <div className={`bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden ${instructorView ? 'flex-1 min-w-[300px] max-w-sm' : 'w-full'}`}>
-        <div className="p-6 overflow-auto">
+      {/* 선택한 날짜의 교육 일정 상세 - 컴팩트 */}
+      <div className={`bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden ${instructorView ? 'flex-1 min-w-[260px] max-w-sm' : 'w-full'}`}>
+        <div className="p-4 overflow-auto">
         {selectedDate ? (
           <>
-            <h3 className="text-lg font-semibold text-gray-900 tracking-tight">
+            <h3 className="text-sm font-semibold text-gray-900">
               {formatDate(selectedDate)}
             </h3>
-            <p className="text-sm text-gray-500 mt-1 mb-6">
-              해당 날짜의 일정입니다.
-            </p>
+            <p className="text-xs text-gray-500 mt-0.5 mb-4">해당 날짜 일정</p>
 
             {selectedDateEvents.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-                <svg className="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                <svg className="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <p className="text-sm">해당 날짜에 일정이 없습니다.</p>
+                <p className="text-xs">해당 날짜에 일정 없음</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {selectedDateEvents.map((event) => {
                   const isPersonal =
                     event.isPersonal ||
@@ -465,47 +463,46 @@ export default function Calendar({
                   return (
                     <div
                       key={event.id}
-                      className={`border rounded-lg p-5 hover:shadow-sm transition-all ${
+                      className={`border rounded-lg p-3 hover:shadow-sm transition-all ${
                         isPersonal
                           ? 'bg-gray-50 border-gray-200'
                           : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="inline-flex items-center gap-2 px-2 py-0.5 bg-white text-xs font-semibold rounded-lg border border-gray-200 text-gray-800">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-white text-[10px] font-semibold rounded border border-gray-200 text-gray-700">
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
+                            className={`w-1 h-1 rounded-full ${
                               !isPersonal ? 'bg-sky-500' : isPreferred ? 'bg-emerald-600' : 'bg-gray-800'
                             }`}
                           />
                           {!isPersonal ? '기업교육' : isPreferred ? '강의 선호' : '강의 불가'}
                         </span>
                       </div>
-                      <h4 className="font-semibold text-gray-900 mb-3 text-base">{event.summary}</h4>
+                      <h4 className="font-semibold text-gray-900 mb-2 text-sm leading-tight line-clamp-2">{event.summary}</h4>
                     {event.start.dateTime && (
-                      <div className="flex items-center text-sm text-gray-600 mb-2">
-                        <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="flex items-center text-xs text-gray-600 mb-1">
+                        <svg className="w-3.5 h-3.5 mr-1.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span>
                           {formatTime(event.start.dateTime)}
-                          {event.end.dateTime &&
-                            ` - ${formatTime(event.end.dateTime)}`}
+                          {event.end?.dateTime && ` - ${formatTime(event.end.dateTime)}`}
                         </span>
                       </div>
                     )}
                     {event.location && (
-                      <div className="flex items-center text-sm text-gray-600 mb-2">
-                        <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="flex items-center text-xs text-gray-600 mb-1">
+                        <svg className="w-3.5 h-3.5 mr-1.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <span>{event.location}</span>
+                        <span className="truncate">{event.location}</span>
                       </div>
                     )}
                     {event.description && (
                       <div
-                        className="text-sm text-gray-600 mb-3 leading-relaxed [&_b]:font-semibold [&_br]:block"
+                        className="text-xs text-gray-600 mb-2 leading-relaxed [&_b]:font-semibold [&_br]:block line-clamp-3"
                         dangerouslySetInnerHTML={{ __html: event.description }}
                       />
                     )}
@@ -515,15 +512,13 @@ export default function Calendar({
                         .map((a) => a.instructorName!);
                       if (instructorNames.length === 0) return null;
                       return (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <p className="text-sm font-semibold text-gray-800 mb-2">
+                        <div className="mt-2 pt-2 border-t border-gray-200">
+                          <p className="text-xs font-semibold text-gray-700 mb-1">
                             강사 {instructorNames.length > 1 ? `(${instructorNames.length}명)` : ''}
                           </p>
-                          <div className="space-y-1.5">
+                          <div className="space-y-0.5">
                             {instructorNames.map((name, idx) => (
-                              <div key={idx} className="text-base text-gray-800">
-                                · {name}
-                              </div>
+                              <div key={idx} className="text-xs text-gray-700">· {name}</div>
                             ))}
                           </div>
                         </div>
@@ -536,11 +531,11 @@ export default function Calendar({
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-            <svg className="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+            <svg className="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <p className="text-sm">캘린더에서 날짜를 선택하면 해당 날짜의 일정이 아래에 표시됩니다.</p>
+            <p className="text-xs text-center">날짜를 선택하면 일정이 표시됩니다.</p>
           </div>
         )}
         </div>
