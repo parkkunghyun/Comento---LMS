@@ -70,7 +70,7 @@ export default function EMSchedulePage() {
   useEffect(() => {
     const loadInstructors = async () => {
       try {
-        const response = await fetch('/api/em/instructors');
+        const response = await fetch('/api/em/instructors?includeInternal=true');
         if (response.ok) {
           const data = await response.json();
           setInstructors(data.instructors || []);

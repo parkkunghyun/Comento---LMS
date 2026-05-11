@@ -13,8 +13,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 외부강사 목록만 조회 (소속이 "내부"가 아닌 강사만)
-    const instructors = await getAllInstructorsWithEmail(true);
+    // ?includeInternal=true 면 내부 강사도 포함, 기본은 외부 강사만
+    const { searchParams } = new URL(request.url);
+    const includeInternal = searchParams.get('includeInternal') === 'true';
+    const instructors = await getAllInstructorsWithEmail(!includeInternal);
 
     return NextResponse.json({
       success: true,
