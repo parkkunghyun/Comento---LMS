@@ -838,6 +838,92 @@ export async function getAllInstructorsWithEmail(externalOnly: boolean = false):
   }
 }
 
+const COACH_INFO_SPREADSHEET_ID = () =>
+  process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
+const COACH_INFO_SHEET_NAME = '실습코치_정보';
+
+/**
+ * 실습코치 목록 조회 (실습코치_정보 시트: A=이메일, B=이름)
+ */
+export async function getAllCoachesWithEmail(): Promise<Array<{ name: string; email: string }>> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = COACH_INFO_SPREADSHEET_ID();
+  const sheetName = COACH_INFO_SHEET_NAME;
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:B`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) return [];
+
+    const coaches: Array<{ name: string; email: string }> = [];
+    const seen = new Set<string>();
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      const emailCell = String(row[0] || '').trim();
+      const coachName = normalizeName(String(row[1] || '').trim());
+      const emails = parseEmailCell(emailCell);
+      const coachEmail = emails[0] || emailCell;
+
+      if (!coachName || !coachEmail || !coachEmail.includes('@')) continue;
+      const key = coachEmail.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      coaches.push({ name: coachName, email: coachEmail });
+    }
+
+    return coaches.sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    console.error('Error fetching coaches with email:', error);
+    throw error;
+  }
+}
+
+/**
+ * 이메일 배열로 실습코치 이름 조회 (실습코치_정보 시트)
+ */
+export async function getCoachNamesByEmails(emails: string[]): Promise<{ [email: string]: string }> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = COACH_INFO_SPREADSHEET_ID();
+  const sheetName = COACH_INFO_SHEET_NAME;
+  const emailToNameMap: { [email: string]: string } = {};
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:B`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) return emailToNameMap;
+
+    const emailLookup = new Set(emails.map((e) => (e || '').trim().toLowerCase()).filter(Boolean));
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      const emailCell = String(row[0] || '').trim();
+      const coachName = String(row[1] || '').trim();
+      if (!emailCell || !coachName) continue;
+
+      const rowEmails = parseEmailCell(emailCell);
+      for (const normalizedEmail of rowEmails) {
+        if (emailLookup.has(normalizedEmail)) {
+          emailToNameMap[normalizedEmail] = coachName;
+        }
+      }
+    }
+
+    return emailToNameMap;
+  } catch (error) {
+    console.error('Error fetching coach names by emails:', error);
+    return emailToNameMap;
+  }
+}
+
 /**
  * 매니저 목록을 조회합니다 (manager_name 시트).
  * @returns 매니저 정보 목록 (이름, 이메일)

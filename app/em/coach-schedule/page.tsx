@@ -32,12 +32,12 @@ interface CalendarEvent {
   location?: string;
 }
 
-interface Instructor {
+interface Coach {
   name: string;
   email: string;
 }
 
-export default function EMSchedulePage() {
+export default function EMCoachSchedulePage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
@@ -46,8 +46,8 @@ export default function EMSchedulePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([]);
   const [thisMonthStats, setThisMonthStats] = useState({ total: 0 });
-  const [instructors, setInstructors] = useState<Instructor[]>([]);
-  const [selectedInstructor, setSelectedInstructor] = useState<string>('');
+  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [selectedCoach, setSelectedCoach] = useState<string>('');
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -66,24 +66,22 @@ export default function EMSchedulePage() {
       });
   }, []);
 
-  // 강사 목록 로드
   useEffect(() => {
-    const loadInstructors = async () => {
+    const loadCoaches = async () => {
       try {
-        const response = await fetch('/api/em/instructors?includeInternal=true');
+        const response = await fetch('/api/em/coaches');
         if (response.ok) {
           const data = await response.json();
-          setInstructors(data.instructors || []);
+          setCoaches(data.coaches || []);
         }
       } catch (err) {
-        console.error('Error loading instructors:', err);
+        console.error('Error loading coaches:', err);
       }
     };
 
-    loadInstructors();
+    loadCoaches();
   }, []);
 
-  // 전체 일정 로드 (캘린더/리스트 공통, 기업 검색용)
   useEffect(() => {
     loadSchedules();
   }, []);
@@ -112,12 +110,11 @@ export default function EMSchedulePage() {
   const loadSchedules = async () => {
     setLoadingSchedules(true);
     try {
-      // 2026년 전체 데이터 가져오기
       const timeMin = new Date('2026-01-01T00:00:00Z').toISOString();
       const timeMax = new Date('2026-12-31T23:59:59Z').toISOString();
-      
+
       const response = await fetch(
-        `/api/em/calendar?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
+        `/api/em/coach-calendar?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
       );
       if (!response.ok) {
         throw new Error('일정을 불러올 수 없습니다.');
@@ -127,25 +124,22 @@ export default function EMSchedulePage() {
       setEvents(allEvents);
       setFilteredEvents(allEvents);
 
-      // 이번달 통계 계산
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
-      
+
       const thisMonthEvents = allEvents.filter((event: CalendarEvent) => {
-        const eventDate = event.start.dateTime 
+        const eventDate = event.start.dateTime
           ? new Date(event.start.dateTime)
-          : event.start.date 
+          : event.start.date
           ? new Date(event.start.date)
           : null;
-        
+
         if (!eventDate) return false;
         return eventDate.getFullYear() === currentYear && eventDate.getMonth() === currentMonth;
       });
 
-      setThisMonthStats({
-        total: thisMonthEvents.length,
-      });
+      setThisMonthStats({ total: thisMonthEvents.length });
     } catch (error) {
       console.error('Error loading schedules:', error);
     } finally {
@@ -193,15 +187,14 @@ export default function EMSchedulePage() {
     return '종일';
   };
 
-  const getInstructors = (event: CalendarEvent) => {
+  const getCoachesFromEvent = (event: CalendarEvent) => {
     if (!event.attendees || event.attendees.length === 0) return '-';
-    // 강사 시트에 있는 강사만 표시 (instructorName이 있는 경우만)
-    const instructors = event.attendees
-      .filter((attendee) => attendee.instructorName) // 강사 이름이 있는 경우만 필터링
+    const names = event.attendees
+      .filter((attendee) => attendee.instructorName)
       .map((attendee) => attendee.instructorName!)
       .filter(Boolean)
       .join(', ');
-    return instructors || '-';
+    return names || '-';
   };
 
   if (loading) {
@@ -222,7 +215,6 @@ export default function EMSchedulePage() {
 
   return (
     <div className="space-y-4 pb-6">
-      {/* 헤더 - 컴팩트 */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 px-4 py-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 bg-gray-900 rounded-lg flex items-center justify-center shrink-0">
@@ -231,15 +223,14 @@ export default function EMSchedulePage() {
             </svg>
           </div>
           <div className="min-w-0">
-            <h1 className="text-lg font-bold text-gray-900">강사 일정확인</h1>
+            <h1 className="text-lg font-bold text-gray-900">실습코치 일정 확인</h1>
             <p className="text-xs text-gray-500 truncate">
-              강사별 기업교육 일정과 개인 일정(불가/선호) 확인
+              실습코치별 기업교육 일정과 개인 일정(불가/선호) 확인
             </p>
           </div>
         </div>
       </div>
 
-      {/* 뷰 모드 전환 탭 - 컴팩트 */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-1.5 flex items-center gap-1">
         <button
           onClick={() => setViewMode('calendar')}
@@ -273,13 +264,12 @@ export default function EMSchedulePage() {
         </button>
       </div>
 
-      {/* 기업 검색 - 컴팩트 */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="flex-1 relative min-w-0">
             <input
               type="text"
-              placeholder="기업명, 클래스명, 강사명 검색..."
+              placeholder="기업명, 클래스명, 실습코치명 검색..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-3 py-2 pl-9 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-400 bg-white"
@@ -310,32 +300,29 @@ export default function EMSchedulePage() {
         )}
       </div>
 
-      {/* 캘린더 뷰 */}
       {viewMode === 'calendar' && (
         <div className="space-y-4">
-          {/* 강사 선택 - 컴팩트 */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 px-4 py-3">
             <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 mb-2">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              강사 선택
+              실습코치 선택
             </label>
             <select
-              value={selectedInstructor}
-              onChange={(e) => setSelectedInstructor(e.target.value)}
+              value={selectedCoach}
+              onChange={(e) => setSelectedCoach(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-gray-300 focus:border-gray-400 appearance-none bg-white cursor-pointer"
             >
-              <option value="">전체 기업교육 일정</option>
-              {instructors.map((instructor) => (
-                <option key={instructor.name} value={instructor.email}>
-                  {instructor.name}
+              <option value="">전체 실습코치 일정</option>
+              {coaches.map((coach) => (
+                <option key={coach.email} value={coach.email}>
+                  {coach.name}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* 캘린더 영역 - 패딩 축소 */}
           {searchQuery.trim() ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-4 w-full max-w-full">
               <div className="mb-3">
@@ -343,23 +330,23 @@ export default function EMSchedulePage() {
                 <p className="text-xs text-gray-500">&quot;{searchQuery}&quot; {filteredEvents.length}건</p>
               </div>
               <Calendar
-                apiEndpoint="/api/em/calendar"
+                apiEndpoint="/api/em/coach-calendar"
                 variant="business"
                 educationOnly
                 filteredEvents={filteredEvents}
                 showCompanyLabelInCells
               />
             </div>
-          ) : selectedInstructor ? (
+          ) : selectedCoach ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-4 w-full max-w-full">
               <div className="mb-3">
                 <h3 className="text-sm font-semibold text-gray-900">
-                  {instructors.find((i) => i.email === selectedInstructor)?.name || '강사'} 캘린더
+                  {coaches.find((c) => c.email === selectedCoach)?.name || '실습코치'} 캘린더
                 </h3>
                 <p className="text-xs text-gray-500">날짜 클릭 시 오른쪽에 일정 표시</p>
               </div>
               <Calendar
-                apiEndpoint={`/api/em/instructor-calendar?instructorEmail=${encodeURIComponent(selectedInstructor)}`}
+                apiEndpoint={`/api/em/coach-calendar?coachEmail=${encodeURIComponent(selectedCoach)}`}
                 variant="business"
                 showCompanyLabelInCells
               />
@@ -367,21 +354,23 @@ export default function EMSchedulePage() {
           ) : (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-4 w-full max-w-full">
               <div className="mb-3">
-                <h3 className="text-sm font-semibold text-gray-900">전체 기업교육 일정</h3>
+                <h3 className="text-sm font-semibold text-gray-900">전체 실습코치 일정</h3>
                 <p className="text-xs text-gray-500">날짜 클릭 시 오른쪽에 일정 표시</p>
               </div>
-              <Calendar apiEndpoint="/api/em/calendar" variant="business" educationOnly />
+              <Calendar apiEndpoint="/api/em/coach-calendar" variant="business" educationOnly />
             </div>
           )}
         </div>
       )}
 
-      {/* 리스트 뷰 - 컴팩트 */}
       {viewMode === 'list' && (
         <div className="space-y-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 px-4 py-3 flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-600">이번달 총 일정</span>
-            <span className="text-xl font-bold text-gray-900">{thisMonthStats.total}<span className="text-sm font-normal text-gray-500 ml-0.5">건</span></span>
+            <span className="text-xl font-bold text-gray-900">
+              {thisMonthStats.total}
+              <span className="text-sm font-normal text-gray-500 ml-0.5">건</span>
+            </span>
           </div>
 
           {loadingSchedules ? (
@@ -407,18 +396,32 @@ export default function EMSchedulePage() {
                       <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">일정</th>
                       <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">제목</th>
                       <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">시간</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">강사</th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">실습코치</th>
                       <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">장소</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
                     {filteredEvents.map((event) => (
                       <tr key={event.id} className="hover:bg-gray-50/80">
-                        <td className="px-4 py-2.5 whitespace-nowrap text-xs font-medium text-gray-900">{formatEventDate(event)}</td>
-                        <td className="px-4 py-2.5 text-xs font-medium text-gray-900 max-w-[200px] truncate" title={event.summary || ''}>{event.summary || '-'}</td>
-                        <td className="px-4 py-2.5 whitespace-nowrap text-xs text-gray-600">{formatEventTime(event)}</td>
-                        <td className="px-4 py-2.5 text-xs text-gray-600">{getInstructors(event)}</td>
-                        <td className="px-4 py-2.5 text-xs text-gray-500 max-w-[120px] truncate" title={event.location || ''}>{event.location || '-'}</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap text-xs font-medium text-gray-900">
+                          {formatEventDate(event)}
+                        </td>
+                        <td
+                          className="px-4 py-2.5 text-xs font-medium text-gray-900 max-w-[200px] truncate"
+                          title={event.summary || ''}
+                        >
+                          {event.summary || '-'}
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap text-xs text-gray-600">
+                          {formatEventTime(event)}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-gray-600">{getCoachesFromEvent(event)}</td>
+                        <td
+                          className="px-4 py-2.5 text-xs text-gray-500 max-w-[120px] truncate"
+                          title={event.location || ''}
+                        >
+                          {event.location || '-'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
