@@ -561,31 +561,6 @@ export async function getAllInstructorNames(): Promise<string[]> {
 }
 
 /**
- * 모든 강사의 정산 데이터를 조회합니다 (EM용).
- * @returns 강사별 그룹화된 정산 데이터
- */
-export async function getAllInstructorSettlements(): Promise<{ [instructorName: string]: GroupedSettlementData[] }> {
-  // 1. 모든 강사 이름 가져오기
-  const instructorNames = await getAllInstructorNames();
-  
-  // 2. 각 강사별 정산 데이터 조회
-  const allSettlements: { [instructorName: string]: GroupedSettlementData[] } = {};
-  
-  for (const instructorName of instructorNames) {
-    try {
-      const settlements = await getInstructorSettlements(instructorName);
-      if (settlements.length > 0) {
-        allSettlements[instructorName] = settlements;
-      }
-    } catch (error) {
-      console.error(`Error fetching settlements for ${instructorName}:`, error);
-    }
-  }
-
-  return allSettlements;
-}
-
-/**
  * 정산 데이터 타입
  */
 export interface SettlementData {
@@ -614,7 +589,7 @@ function normalizeName(name: string): string {
 
 /**
  * 날짜를 정규화합니다 (YY-MM-DD 형식을 YYYY-MM-DD로 변환)
- * @param dateString 날짜 문자열 (예: "25-10-28", "2025-10-28")
+ * @param dateString 날짜 문자열 (예: "25-10-28", "2025-10-28", "26-8-28")
  * @returns 정규화된 날짜 문자열 (YYYY-MM-DD)
  */
 function normalizeDate(dateString: string): string {
@@ -622,7 +597,7 @@ function normalizeDate(dateString: string): string {
   
   const trimmed = dateString.trim();
   
-  // YY-MM-DD 형식인 경우 (예: "25-10-28")
+  // YY-MM-DD 형식인 경우 (예: "25-10-28", "26-8-28")
   const yyFormat = /^(\d{2})-(\d{1,2})-(\d{1,2})$/;
   const match = trimmed.match(yyFormat);
   
@@ -641,114 +616,143 @@ function normalizeDate(dateString: string): string {
   return trimmed;
 }
 
+function getSettlementSpreadsheetConfig() {
+  return {
+    spreadsheetId:
+      process.env.GOOGLE_SETTLEMENT_SPREADSHEET_ID ||
+      '1aF4ZsnVXUH-gJ-4jZPSD0GFIVGYGCzNpo4-wiHLic4k',
+    sheetName: process.env.GOOGLE_SETTLEMENT_SHEET_NAME || '정산시트',
+  };
+}
+
+/** 정산시트 행을 SettlementData로 파싱 (헤더 제외) */
+function parseSettlementRows(rows: string[][]): SettlementData[] {
+  const settlements: SettlementData[] = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    // B=멘토명, E=클래스명, I=시간, N=정산금액, O=정산일자
+    const mentorName = normalizeName(row[1] || '');
+    const className = String(row[4] ?? '').trim();
+    const time = String(row[8] ?? '').trim();
+    const amount = String(row[13] ?? '').trim();
+    const settlementDate = String(row[14] ?? '').trim();
+
+    if (!mentorName || !settlementDate) continue;
+
+    settlements.push({
+      mentorName,
+      className,
+      time,
+      amount,
+      settlementDate: normalizeDate(settlementDate),
+    });
+  }
+
+  return settlements;
+}
+
+/** 정산 데이터를 정산일자 기준으로 그룹핑·합계 */
+function groupSettlementsByDate(settlements: SettlementData[]): GroupedSettlementData[] {
+  const grouped: { [key: string]: SettlementData[] } = {};
+  settlements.forEach((item) => {
+    const date = item.settlementDate;
+    if (!grouped[date]) grouped[date] = [];
+    grouped[date].push(item);
+  });
+
+  return Object.keys(grouped)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+    .map((date) => {
+      const classes = grouped[date];
+      const totalAmount = classes.reduce((sum, item) => {
+        const amount = parseFloat(String(item.amount).replace(/,/g, '')) || 0;
+        return sum + amount;
+      }, 0);
+      return { date, classes, totalAmount };
+    });
+}
+
+/** 정산시트 전체 행을 한 번 조회 */
+async function fetchSettlementSheetRows(): Promise<string[][]> {
+  const sheets = getGoogleSheetsClient();
+  const { spreadsheetId, sheetName } = getSettlementSpreadsheetConfig();
+
+  console.log('Fetching settlement sheet:', spreadsheetId, sheetName);
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `'${sheetName}'!A:Z`,
+  });
+
+  return (response.data.values as string[][]) || [];
+}
+
+/**
+ * 모든 강사의 정산 데이터를 조회합니다 (EM용).
+ * 정산시트만 읽어 멘토명별로 그룹핑합니다 (강사 현황 시트에 의존하지 않음).
+ */
+export async function getAllInstructorSettlements(): Promise<{
+  [instructorName: string]: GroupedSettlementData[];
+}> {
+  try {
+    const rows = await fetchSettlementSheetRows();
+    if (rows.length === 0) {
+      console.log('No rows found in settlement spreadsheet');
+      return {};
+    }
+
+    const all = parseSettlementRows(rows);
+    const byMentor: { [name: string]: SettlementData[] } = {};
+    all.forEach((item) => {
+      if (!byMentor[item.mentorName]) byMentor[item.mentorName] = [];
+      byMentor[item.mentorName].push(item);
+    });
+
+    const result: { [instructorName: string]: GroupedSettlementData[] } = {};
+    Object.keys(byMentor)
+      .sort()
+      .forEach((name) => {
+        result[name] = groupSettlementsByDate(byMentor[name]);
+      });
+
+    console.log(
+      `Loaded settlements for ${Object.keys(result).length} mentors from ${all.length} rows`
+    );
+    return result;
+  } catch (error) {
+    console.error('Error fetching all settlement data:', error);
+    throw error;
+  }
+}
+
 /**
  * 특정 강사의 정산 데이터를 조회하고 O열 기준으로 그룹핑합니다.
  * @param instructorName 강사 이름 (로그인 시 사용한 성함)
  * @returns 그룹화된 정산 데이터 목록
  */
-export async function getInstructorSettlements(instructorName: string): Promise<GroupedSettlementData[]> {
-  const sheets = getGoogleSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SETTLEMENT_SPREADSHEET_ID || '1aF4ZsnVXUH-gJ-4jZPSD0GFIVGYGCzNpo4-wiHLic4k';
-  // 시트 이름: "정산시트"
-  const sheetName = process.env.GOOGLE_SETTLEMENT_SHEET_NAME || '정산시트';
-
+export async function getInstructorSettlements(
+  instructorName: string
+): Promise<GroupedSettlementData[]> {
   try {
-    // 이름 정규화
     const normalizedInstructorName = normalizeName(instructorName);
     console.log('Looking for settlements for instructor:', normalizedInstructorName);
-    console.log('Using spreadsheet ID:', spreadsheetId);
-    console.log('Using sheet name:', sheetName);
 
-    // 시트의 모든 데이터를 가져옵니다
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A:Z`, // "정산시트" 시트 사용
-    });
-
-    const rows = response.data.values;
-    if (!rows || rows.length === 0) {
+    const rows = await fetchSettlementSheetRows();
+    if (rows.length === 0) {
       console.log('No rows found in settlement spreadsheet');
       return [];
     }
 
-    console.log(`Total rows in settlement sheet: ${rows.length}`);
+    const settlements = parseSettlementRows(rows).filter(
+      (item) => item.mentorName === normalizedInstructorName
+    );
 
-    const settlements: SettlementData[] = [];
-    const allMentorNames = new Set<string>();
+    console.log(
+      `Found ${settlements.length} settlements for ${normalizedInstructorName} (total rows: ${rows.length})`
+    );
 
-    // 헤더 행을 제외하고 데이터 행만 처리
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      
-      // 컬럼 인덱스: B열(1) - 멘토명, E열(4) - 클래스명, I열(8) - 시간, N열(13) - 정산 금액, O열(14) - 정산일자
-      const mentorName = normalizeName(row[1] || ''); // B열 - 멘토명
-      const className = row[4]?.trim() || ''; // E열 - 클래스명
-      const time = row[8]?.trim() || ''; // I열 - 시간
-      const amount = row[13]?.trim() || ''; // N열 - 정산 금액
-      const settlementDate = row[14]?.trim() || ''; // O열 - 정산일자
-
-      // 모든 멘토명 수집 (디버깅용)
-      if (mentorName) {
-        allMentorNames.add(mentorName);
-      }
-
-      // 해당 강사의 데이터만 필터링 (이름 정확히 일치)
-      if (mentorName === normalizedInstructorName && settlementDate) {
-        // 날짜 정규화 (YY-MM-DD -> YYYY-MM-DD)
-        const normalizedDate = normalizeDate(settlementDate);
-        settlements.push({
-          mentorName,
-          className,
-          time,
-          amount,
-          settlementDate: normalizedDate, // 정규화된 날짜 사용
-        });
-      }
-    }
-
-    console.log(`Found ${settlements.length} settlements for ${normalizedInstructorName}`);
-    console.log('All mentor names in settlement sheet:', Array.from(allMentorNames));
-    console.log('Looking for instructor name:', normalizedInstructorName);
-    console.log('Matching names found:', Array.from(allMentorNames).filter(name => name === normalizedInstructorName));
-
-    // 6. O열 기준으로 그룹핑
-    const grouped: { [key: string]: SettlementData[] } = {};
-    settlements.forEach((item) => {
-      const date = item.settlementDate;
-      if (!grouped[date]) {
-        grouped[date] = [];
-      }
-      grouped[date].push(item);
-    });
-
-    // 7. N열 금액 합계 계산 및 결과 생성
-    const result: GroupedSettlementData[] = Object.keys(grouped)
-      .sort((a, b) => {
-        // 날짜 내림차순 정렬 (최신순)
-        // YYYY-MM-DD 형식이므로 문자열 비교로 정렬 가능하지만, Date 객체로 변환하여 확실하게 정렬
-        const dateA = new Date(a);
-        const dateB = new Date(b);
-        return dateB.getTime() - dateA.getTime(); // 최신 날짜가 먼저 오도록
-      })
-      .map((date) => {
-        const classes = grouped[date];
-        // N열 금액 합계 계산
-        const totalAmount = classes.reduce((sum, item) => {
-          // 쉼표 제거 후 숫자로 변환
-          const amount = parseFloat(item.amount.replace(/,/g, '')) || 0;
-          return sum + amount;
-        }, 0);
-
-        return {
-          date,
-          classes,
-          totalAmount,
-        };
-      });
-
-    console.log(`Grouped into ${result.length} date groups`);
-
-    return result;
+    return groupSettlementsByDate(settlements);
   } catch (error) {
     console.error('Error fetching settlement data:', error);
     throw error;
