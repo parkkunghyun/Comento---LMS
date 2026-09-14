@@ -22,7 +22,9 @@ export default function LoginPage() {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           name: loginType === 'em' ? undefined : name,
           emId: loginType === 'em' ? emId : undefined,
@@ -40,174 +42,261 @@ export default function LoginPage() {
         return;
       }
 
-      if (data.role === 'INSTRUCTOR') router.push('/instructor');
-      else if (data.role === 'EM') router.push('/em');
-    } catch {
+      // 로그인 성공 - 역할에 따라 리다이렉트
+      if (data.role === 'INSTRUCTOR') {
+        router.push('/instructor');
+      } else if (data.role === 'EM') {
+        router.push('/em');
+      }
+    } catch (err) {
       setError('로그인 처리 중 오류가 발생했습니다.');
       setLoading(false);
     }
   };
 
-  const inputClass = (field: string) =>
-    `potens-input py-3 transition-colors duration-soft ${
-      focusedField === field ? 'border-potens-navy' : ''
-    }`;
-
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden md:flex w-[42%] bg-potens-navy text-white flex-col justify-between p-10">
-        <div>
-          <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="Potens" className="h-10 w-auto" />
-            <span className="text-2xl font-bold tracking-tight">
-              Potens<span className="text-potens-orange">.</span>
-            </span>
-          </div>
-          <p className="mt-4 text-sm text-white/70 leading-relaxed">
-            강사 섭외와 교육 운영을<br />한곳에서 관리합니다.
-          </p>
-        </div>
-        <p className="text-xs text-white/40">강사 ADMIN</p>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center bg-white px-6 py-12">
-        <div className="w-full max-w-md">
-          <div className="mb-8 md:hidden flex items-center gap-2.5">
-            <img src="/logo.svg" alt="Potens" className="h-9 w-auto" />
-            <span className="potens-brand text-2xl">Potens</span>
+    <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+      <div className="w-full max-w-md px-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 overflow-hidden">
+          {/* 헤더 */}
+          <div className="px-8 pt-10 pb-6">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">
+                강사 ADMIN
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                로그인 유형을 선택하세요
+              </p>
+            </div>
           </div>
 
-          <h1 className="potens-title text-2xl">
-            로그인<span className="text-potens-orange">.</span>
-          </h1>
-          <p className="potens-body text-sm mt-2 mb-8">로그인 유형을 선택하세요</p>
-
-          <div className="flex border border-potens-line mb-8">
-            <button
-              type="button"
-              onClick={() => {
-                setLoginType('instructor');
-                setError('');
-                setEmId('');
-              }}
-              className={`flex-1 py-2.5 text-sm font-medium transition-colors duration-soft ${
-                loginType === 'instructor'
-                  ? 'bg-potens-navy text-white'
-                  : 'bg-white text-potens-body hover:text-potens-navy'
-              }`}
-            >
-              강사 로그인
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setLoginType('em');
-                setError('');
-                setName('');
-              }}
-              className={`flex-1 py-2.5 text-sm font-medium transition-colors duration-soft border-l border-potens-line ${
-                loginType === 'em'
-                  ? 'bg-potens-navy text-white'
-                  : 'bg-white text-potens-body hover:text-potens-navy'
-              }`}
-            >
-              EM 로그인
-            </button>
+          {/* 로그인 유형 선택 */}
+          <div className="px-8 pb-6">
+            <div className="relative bg-gray-100 rounded-lg p-1 inline-flex w-full">
+              <div
+                className={`absolute top-1 bottom-1 w-1/2 rounded-md bg-white shadow-sm transition-all duration-300 ease-out ${
+                  loginType === 'em' ? 'translate-x-full' : 'translate-x-0'
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginType('instructor');
+                  setError('');
+                  setEmId('');
+                }}
+                className={`relative flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-colors duration-200 z-10 ${
+                  loginType === 'instructor'
+                    ? 'text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                강사 로그인
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginType('em');
+                  setError('');
+                  setName('');
+                }}
+                className={`relative flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-colors duration-200 z-10 ${
+                  loginType === 'em'
+                    ? 'text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                EM 로그인
+              </button>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {loginType === 'em' && (
-              <>
+          {/* 폼 */}
+          <form className="px-8 pb-10" onSubmit={handleSubmit}>
+            <div className="space-y-5">
+              {/* EM 로그인: 아이디 입력 */}
+              {loginType === 'em' && (
                 <div>
-                  <label htmlFor="emId" className="block text-sm font-medium text-potens-navy mb-2">
+                  <label
+                    htmlFor="emId"
+                    className={`block text-sm font-medium mb-2 transition-colors ${
+                      focusedField === 'emId'
+                        ? 'text-gray-900'
+                        : 'text-gray-700'
+                    }`}
+                  >
                     아이디
                   </label>
-                  <input
-                    id="emId"
-                    type="text"
-                    required
-                    value={emId}
-                    onChange={(e) => setEmId(e.target.value)}
-                    onFocus={() => setFocusedField('emId')}
-                    onBlur={() => setFocusedField(null)}
-                    className={inputClass('emId')}
-                    placeholder="예) comento 또는 이창환"
-                  />
+                  <div className="relative">
+                    <input
+                      id="emId"
+                      name="emId"
+                      type="text"
+                      required
+                      value={emId}
+                      onChange={(e) => setEmId(e.target.value)}
+                      onFocus={() => setFocusedField('emId')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`w-full px-4 py-3 border rounded-lg text-sm transition-all duration-200 focus:outline-none ${
+                        focusedField === 'emId'
+                          ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
+                          : 'border-gray-300 focus:border-gray-900'
+                      }`}
+                      placeholder="예) comento 또는 이창환"
+                    />
+                  </div>
                 </div>
+              )}
+
+              {/* EM 로그인: 비밀번호 입력 */}
+              {loginType === 'em' && (
                 <div>
-                  <label htmlFor="pinCode" className="block text-sm font-medium text-potens-navy mb-2">
+                  <label
+                    htmlFor="pinCode"
+                    className={`block text-sm font-medium mb-2 transition-colors ${
+                      focusedField === 'pinCode'
+                        ? 'text-gray-900'
+                        : 'text-gray-700'
+                    }`}
+                  >
                     비밀번호
                   </label>
-                  <input
-                    id="pinCode"
-                    type="password"
-                    required
-                    value={pinCode}
-                    onChange={(e) => setPinCode(e.target.value)}
-                    onFocus={() => setFocusedField('pinCode')}
-                    onBlur={() => setFocusedField(null)}
-                    className={inputClass('pinCode')}
-                    placeholder="비밀번호를 입력하세요"
-                    maxLength={50}
-                  />
+                  <div className="relative">
+                    <input
+                      id="pinCode"
+                      name="pinCode"
+                      type="password"
+                      required
+                      value={pinCode}
+                      onChange={(e) => setPinCode(e.target.value)}
+                      onFocus={() => setFocusedField('pinCode')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`w-full px-4 py-3 border rounded-lg text-sm transition-all duration-200 focus:outline-none ${
+                        focusedField === 'pinCode'
+                          ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
+                          : 'border-gray-300 focus:border-gray-900'
+                      }`}
+                      placeholder="비밀번호를 입력하세요"
+                      maxLength={50}
+                    />
+                  </div>
                 </div>
-              </>
-            )}
+              )}
 
-            {loginType === 'instructor' && (
-              <>
+              {/* 강사 로그인: 이메일 입력 */}
+              {loginType === 'instructor' && (
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-potens-navy mb-2">
+                  <label
+                    htmlFor="email"
+                    className={`block text-sm font-medium mb-2 transition-colors ${
+                      focusedField === 'email'
+                        ? 'text-gray-900'
+                        : 'text-gray-700'
+                    }`}
+                  >
                     이메일
                   </label>
-                  <input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
-                    className={inputClass('email')}
-                    placeholder="yubin@comento.co.kr"
-                  />
+                  <div className="relative">
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onFocus={() => setFocusedField('email')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`w-full px-4 py-3 border rounded-lg text-sm transition-all duration-200 focus:outline-none ${
+                        focusedField === 'email'
+                          ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
+                          : 'border-gray-300 focus:border-gray-900'
+                      }`}
+                      placeholder="yubin@comento.co.kr"
+                    />
+                  </div>
                 </div>
+              )}
+
+              {/* 강사 로그인: 핀코드 입력 */}
+              {loginType === 'instructor' && (
                 <div>
-                  <label htmlFor="pinCode" className="block text-sm font-medium text-potens-navy mb-2">
+                  <label
+                    htmlFor="pinCode"
+                    className={`block text-sm font-medium mb-2 transition-colors ${
+                      focusedField === 'pinCode'
+                        ? 'text-gray-900'
+                        : 'text-gray-700'
+                    }`}
+                  >
                     핀코드
                   </label>
-                  <input
-                    id="pinCode"
-                    type="password"
-                    required
-                    value={pinCode}
-                    onChange={(e) => setPinCode(e.target.value)}
-                    onFocus={() => setFocusedField('pinCode')}
-                    onBlur={() => setFocusedField(null)}
-                    className={inputClass('pinCode')}
-                    placeholder="핀코드를 입력하세요"
-                    maxLength={10}
-                  />
+                  <div className="relative">
+                    <input
+                      id="pinCode"
+                      name="pinCode"
+                      type="password"
+                      required
+                      value={pinCode}
+                      onChange={(e) => setPinCode(e.target.value)}
+                      onFocus={() => setFocusedField('pinCode')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`w-full px-4 py-3 border rounded-lg text-sm transition-all duration-200 focus:outline-none ${
+                        focusedField === 'pinCode'
+                          ? 'border-gray-900 ring-2 ring-gray-900 ring-opacity-20'
+                          : 'border-gray-300 focus:border-gray-900'
+                      }`}
+                      placeholder="핀코드를 입력하세요"
+                      maxLength={10}
+                    />
+                  </div>
                 </div>
-              </>
-            )}
+              )}
+            </div>
 
+            {/* 에러 메시지 */}
             {error && (
-              <div className="p-3 border border-potens-line text-sm text-potens-body text-center">
-                {error}
+              <div className="mt-5 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 text-center">{error}</p>
               </div>
             )}
 
+            {/* 로그인 버튼 */}
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 text-sm font-medium transition-colors duration-soft ${
+              className={`mt-6 w-full py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
                 loading
-                  ? 'bg-potens-line text-potens-body cursor-not-allowed'
-                  : 'potens-btn-primary'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-800 text-white hover:bg-gray-700 active:scale-[0.98]'
               }`}
             >
-              {loading ? '로그인 중...' : '로그인'}
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  로그인 중...
+                </span>
+              ) : (
+                '로그인'
+              )}
             </button>
           </form>
         </div>
