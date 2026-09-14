@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { getEMNameFromStatusSheet } from '@/lib/google-sheets';
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -11,10 +12,16 @@ export async function GET() {
     );
   }
 
+  let name = user.name;
+  if (user.role === 'EM' && user.email) {
+    const statusName = await getEMNameFromStatusSheet(user.email);
+    if (statusName) name = statusName;
+  }
+
   return NextResponse.json({
     role: user.role,
     user: {
-      name: user.name,
+      name,
       email: user.email,
       ...(user.role === 'INSTRUCTOR' && {
         mobile: user.mobile,
@@ -23,6 +30,3 @@ export async function GET() {
     },
   });
 }
-
-
-

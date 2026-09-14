@@ -34,11 +34,9 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
       });
   }, [router]);
 
-  // 현재 경로에 따라 메뉴 자동 확장 (필요 시 사용)
   useEffect(() => {
     setExpandedMenus(new Set());
   }, [pathname]);
-
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -47,235 +45,144 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-          <div className="text-gray-600">로딩 중...</div>
+          <div className="w-8 h-8 border-2 border-potens-line border-t-potens-navy rounded-full animate-spin" />
+          <p className="text-sm text-potens-body">로딩 중...</p>
         </div>
       </div>
     );
   }
 
   const toggleMenu = (menuKey: string) => {
-    const newExpanded = new Set(expandedMenus);
-    if (newExpanded.has(menuKey)) {
-      newExpanded.delete(menuKey);
-    } else {
-      newExpanded.add(menuKey);
-    }
-    setExpandedMenus(newExpanded);
+    const next = new Set(expandedMenus);
+    if (next.has(menuKey)) next.delete(menuKey);
+    else next.add(menuKey);
+    setExpandedMenus(next);
   };
 
   const menuItems = [
-    { 
-      href: '/em', 
-      label: '대시보드',
-      icon: (
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-        </svg>
-      )
-    },
-    { 
-      href: '/em/schedule', 
-      label: '강사 일정확인',
-      icon: (
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      )
-    },
-    { 
-      href: '/em/coach-schedule', 
-      label: '실습코치 일정 확인',
-      icon: (
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      )
-    },
-    { 
-      href: '/em/instructors', 
-      label: '강사 현황',
-      icon: (
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      )
-    },
-    { 
-      href: '/em/satisfaction', 
-      label: '강의 만족도',
-      icon: (
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-        </svg>
-      )
-    },
-    { 
-      href: '/em/settlement', 
-      label: '강사 정산 금액',
-      icon: (
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
-    },
-    { 
-      href: '/em/change-credentials', 
-      label: 'id/pw변경',
-      icon: (
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-        </svg>
-      )
-    },
+    { href: '/em', label: '대시보드' },
+    { href: '/em/schedule', label: '강사 일정확인' },
+    { href: '/em/instructors', label: '강사 현황' },
+    { href: '/em/settlement', label: '강사 정산 금액' },
+    { href: '/em/change-credentials', label: 'id/pw변경' },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* 사이드바 - 컴팩트 */}
-      <aside className="fixed left-0 top-0 w-36 bg-white border-r border-gray-200 h-screen overflow-y-auto z-20">
-        {/* 로고 영역 */}
-        <div className="p-2.5 border-b border-gray-200/60">
-          <div className="flex items-center gap-1.5">
-            <div className="w-7 h-7 bg-gray-800 rounded-md flex items-center justify-center shrink-0">
-              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+    <div className="min-h-screen bg-white flex">
+      <aside className="fixed left-0 top-0 w-44 bg-white border-r border-potens-line h-screen overflow-y-auto z-20">
+        <div className="px-4 py-5 border-b border-potens-line">
+          <a href="/em" className="flex items-center gap-2.5 min-w-0">
+            <img src="/logo.svg" alt="Potens" className="h-8 w-auto shrink-0" />
+            <div className="min-w-0">
+              <span className="potens-brand text-base leading-none">Potens</span>
+              <p className="text-[11px] text-potens-body mt-0.5">강사 ADMIN</p>
             </div>
-            <h1 className="text-xs font-semibold text-gray-800 truncate">강사 ADMIN</h1>
-          </div>
+          </a>
         </div>
 
-        {/* 메인 메뉴 */}
-        <nav className="p-1.5">
-          <div className="mb-3">
-            <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider px-1.5 mb-1.5">MENU</p>
-            <ul className="space-y-0.5">
-              {menuItems.map((item) => {
-                if ('children' in item && Array.isArray(item.children)) {
-                  // 하위 메뉴가 있는 경우 (key 없으면 href로 구분)
-                  const menuKey = ('key' in item && (item as { key?: string }).key) || item.href || '';
-                  const isExpanded = expandedMenus.has(menuKey);
-                  const hasActiveChild = item.children.some((child: { href: string }) => pathname === child.href);
-                  
-                  return (
-                    <li key={menuKey}>
-                      <button
-                        onClick={() => toggleMenu(menuKey)}
-                        className={`
-                          w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-medium rounded-md transition-all duration-200
-                          ${
-                            hasActiveChild
-                              ? 'bg-gray-100 text-gray-900 font-semibold'
-                              : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                          }
-                        `}
+        <nav className="p-3">
+          <p className="text-[10px] font-medium text-potens-navy tracking-wider px-2 mb-2">
+            MENU
+          </p>
+          <ul className="space-y-0.5">
+            {menuItems.map((item) => {
+              if ('children' in item && Array.isArray((item as { children?: unknown }).children)) {
+                const menuKey = item.href;
+                const children = (item as { children: Array<{ href: string; label: string }> }).children;
+                const isExpanded = expandedMenus.has(menuKey);
+                const hasActiveChild = children.some((c) => pathname === c.href);
+                return (
+                  <li key={menuKey}>
+                    <button
+                      onClick={() => toggleMenu(menuKey)}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 text-[12px] rounded-sm transition-colors duration-soft ${
+                        hasActiveChild
+                          ? 'bg-[#f3f4f9] text-potens-navy font-medium'
+                          : 'text-potens-body hover:bg-[#f7f8fc] hover:text-potens-navy'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      <svg
+                        className={`w-3 h-3 transition-transform duration-soft ${isExpanded ? 'rotate-90' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={hasActiveChild ? 'text-gray-700' : 'text-gray-500'}>{item.icon}</span>
-                          <span className="truncate">{item.label}</span>
-                        </div>
-                        <svg
-                          className={`w-3 h-3 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                      {isExpanded && (
-                        <ul className="ml-2.5 mt-0.5 space-y-0.5 border-l-2 border-gray-200 pl-2">
-                          {item.children.map((child) => {
-                            const isActive = pathname === child.href;
-                            return (
-                              <li key={child.href}>
-                                <a
-                                  href={child.href}
-                                  className={`
-                                    block px-1.5 py-1 text-[10px] rounded-md transition-all duration-200
-                                    ${
-                                      isActive
-                                        ? 'bg-gray-100 text-gray-900 font-semibold'
-                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                                    }
-                                  `}
-                                >
-                                  {child.label}
-                                </a>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </li>
-                  );
-                } else {
-                  // 일반 메뉴 항목
-                  const isActive = pathname === item.href;
-                  return (
-                    <li key={item.href}>
-                      <a
-                        href={item.href}
-                        className={`
-                          flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-medium rounded-md transition-all duration-200 min-w-0
-                          ${
-                            isActive
-                              ? 'bg-gray-100 text-gray-900 font-semibold'
-                              : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                          }
-                        `}
-                      >
-                        <span className={`${isActive ? 'text-gray-700' : 'text-gray-500'} shrink-0`}>{item.icon}</span>
-                        <span className="truncate">{item.label}</span>
-                      </a>
-                    </li>
-                  );
-                }
-              })}
-            </ul>
-          </div>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    {isExpanded && (
+                      <ul className="ml-2 mt-0.5 space-y-0.5 border-l border-potens-line pl-2">
+                        {children.map((child) => {
+                          const isActive = pathname === child.href;
+                          return (
+                            <li key={child.href}>
+                              <a
+                                href={child.href}
+                                className={`block px-2 py-1.5 text-[11px] rounded-sm transition-colors duration-soft ${
+                                  isActive
+                                    ? 'text-potens-navy font-medium bg-[#f3f4f9]'
+                                    : 'text-potens-body hover:text-potens-navy'
+                                }`}
+                              >
+                                {child.label}
+                              </a>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </li>
+                );
+              }
+
+              const isActive = pathname === item.href;
+              return (
+                <li key={item.href}>
+                  <a
+                    href={item.href}
+                    className={`flex items-center px-2.5 py-2 text-[12px] rounded-sm transition-colors duration-soft ${
+                      isActive
+                        ? 'bg-[#f3f4f9] text-potens-navy font-medium border-l-2 border-potens-orange -ml-px pl-[9px]'
+                        : 'text-potens-body hover:bg-[#f7f8fc] hover:text-potens-navy'
+                    }`}
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
       </aside>
 
-      {/* 메인 콘텐츠 영역 */}
-      <div className="ml-36 flex flex-col min-h-screen flex-1">
-        {/* 헤더 */}
-        <header className="bg-white border-b border-gray-200/60 sticky top-0 z-10">
-          <div className="px-4 md:px-6 py-3 flex justify-between items-center">
-            <div></div>
-
-            {/* 우측: 프로필 */}
-            <div className="flex items-center gap-4">
-              {/* 프로필 */}
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white text-sm font-semibold">
-                  {user?.user.name?.charAt(0) || 'U'}
-                </div>
-                <div className="hidden md:block">
-                  <div className="text-xs font-medium text-gray-900">{user?.user.name}</div>
-                  <div className="text-[10px] text-gray-500 truncate max-w-[120px]">{user?.user.email}</div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="ml-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                  title="로그아웃"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </button>
+      <div className="ml-44 flex flex-col min-h-screen flex-1">
+        <header className="bg-white border-b border-potens-line sticky top-0 z-10">
+          <div className="px-5 md:px-8 py-3.5 flex justify-end items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-potens-navy flex items-center justify-center text-white text-xs font-semibold">
+                {user?.user.name?.charAt(0) || 'U'}
               </div>
+              <div className="hidden md:block text-right">
+                <div className="text-xs font-medium text-potens-black">{user?.user.name}</div>
+                <div className="text-[10px] text-potens-body truncate max-w-[140px]">{user?.user.email}</div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="ml-1 p-2 text-potens-body hover:text-potens-navy transition-colors duration-soft"
+                title="로그아웃"
+              >
+                <svg className="w-4.5 h-4.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
             </div>
           </div>
         </header>
 
-        {/* 콘텐츠 */}
-        <main className="flex-1 p-4 md:p-6 overflow-auto bg-[#fafafa]">
-          {children}
-        </main>
+        <main className="flex-1 p-5 md:p-8 overflow-auto bg-white">{children}</main>
       </div>
     </div>
   );

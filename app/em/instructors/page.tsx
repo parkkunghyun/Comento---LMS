@@ -101,12 +101,12 @@ export default function EMInstructorsPage() {
   const saveEdit = async () => {
     if (!editingCell) return;
     const columnMap: { [key: string]: number } = {
-      name: 2,
-      affiliation: 3,
+      name: 0,
+      affiliation: 1,
       mobile: 6,
       email: 7,
       fee: 8,
-      notes: 13,
+      notes: 12,
     };
     const columnIndex = columnMap[editingCell.column];
     if (columnIndex === undefined) {

@@ -13,10 +13,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ?includeInternal=true 면 내부 강사도 포함, 기본은 외부 강사만
-    const { searchParams } = new URL(request.url);
-    const includeInternal = searchParams.get('includeInternal') === 'true';
-    const instructors = await getAllInstructorsWithEmail(!includeInternal);
+    // 기업교육_외부강사 시트 기준 (F열: 중단/대기중/양성단계 제외)
+    const instructors = await getAllInstructorsWithEmail();
 
     return NextResponse.json({
       success: true,

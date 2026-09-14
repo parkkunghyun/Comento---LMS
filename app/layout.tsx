@@ -2,8 +2,12 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: '강사 ADMIN',
+  title: 'Potens. 강사 ADMIN',
   description: '강사 섭외 및 교육 운영을 위한 LMS',
+  icons: {
+    icon: [{ url: '/logo.svg', type: 'image/svg+xml' }],
+    apple: '/logo.svg',
+  },
 };
 
 export default function RootLayout({
@@ -13,10 +17,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+        />
+      </head>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }
-
-
-

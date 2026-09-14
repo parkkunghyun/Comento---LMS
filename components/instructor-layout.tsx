@@ -42,8 +42,11 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">로딩 중...</div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-potens-line border-t-potens-navy rounded-full animate-spin" />
+          <p className="text-sm text-potens-body">로딩 중...</p>
+        </div>
       </div>
     );
   }
@@ -57,28 +60,31 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
   ];
 
   return (
-    <div className="min-h-screen bg-[#fafafa] flex">
-      {/* 사이드바 */}
-      <aside className="w-64 bg-white border-r border-gray-200/60 min-h-screen">
-        <div className="p-6 border-b border-gray-200/60">
-          <h1 className="text-xl font-semibold text-gray-800 tracking-tight">강사 ADMIN</h1>
+    <div className="min-h-screen bg-white flex">
+      <aside className="w-56 bg-white border-r border-potens-line min-h-screen">
+        <div className="px-5 py-5 border-b border-potens-line">
+          <a href="/instructor" className="flex items-center gap-2.5 min-w-0">
+            <img src="/logo.svg" alt="Potens" className="h-8 w-auto shrink-0" />
+            <div className="min-w-0">
+              <span className="potens-brand text-base leading-none">Potens</span>
+              <p className="text-[11px] text-potens-body mt-0.5">강사 ADMIN</p>
+            </div>
+          </a>
         </div>
-        <nav className="p-4">
-          <ul className="space-y-1">
+        <nav className="p-3">
+          <p className="text-[10px] font-medium text-potens-navy tracking-wider px-2 mb-2">MENU</p>
+          <ul className="space-y-0.5">
             {menuItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <li key={item.href}>
                   <a
                     href={item.href}
-                    className={`
-                      block px-4 py-2.5 text-sm font-medium rounded-lg transition-all
-                      ${
-                        isActive
-                          ? 'bg-gray-100 text-gray-900 font-semibold'
-                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                      }
-                    `}
+                    className={`block px-2.5 py-2 text-[12px] rounded-sm transition-colors duration-soft ${
+                      isActive
+                        ? 'bg-[#f3f4f9] text-potens-navy font-medium border-l-2 border-potens-orange -ml-px pl-[9px]'
+                        : 'text-potens-body hover:bg-[#f7f8fc] hover:text-potens-navy'
+                    }`}
                   >
                     {item.label}
                   </a>
@@ -89,19 +95,15 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
         </nav>
       </aside>
 
-      {/* 메인 콘텐츠 영역 */}
       <div className="flex-1 flex flex-col">
-        {/* 헤더 */}
-        <header className="bg-white border-b border-gray-200/60">
-          <div className="px-6 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <h2 className="text-lg font-medium text-gray-800">강사 섭외 관리</h2>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">{user?.user.name}</span>
+        <header className="bg-white border-b border-potens-line">
+          <div className="px-6 py-3.5 flex justify-between items-center">
+            <h2 className="text-sm font-medium text-potens-navy">강사 섭외 관리</h2>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-potens-body">{user?.user.name}</span>
               <button
                 onClick={handleLogout}
-                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                className="text-sm text-potens-body hover:text-potens-navy transition-colors duration-soft"
               >
                 로그아웃
               </button>
@@ -109,10 +111,7 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
           </div>
         </header>
 
-        {/* 콘텐츠 */}
-        <main className="flex-1 p-6 overflow-auto bg-[#fafafa]">
-          {children}
-        </main>
+        <main className="flex-1 p-6 overflow-auto bg-white">{children}</main>
       </div>
     </div>
   );

@@ -73,8 +73,8 @@ export async function GET(request: NextRequest) {
       return false;
     });
 
-    // "강사 현황" 시트에서 모든 강사 이름 가져오기 (C열)
-    const allInstructorsFromSheet = await getAllInstructorInfo(true); // 외부 강사만 (D열이 "내부"가 아닌 강사)
+    // "기업교육_외부강사" 시트에서 강사 목록 가져오기 (F열 중단/대기중/양성단계 제외)
+    const allInstructorsFromSheet = await getAllInstructorInfo(true);
     const allInstructorNames = new Set<string>(allInstructorsFromSheet.map((inst) => inst.name));
     
     // 섭외 로그에 있는 강사도 추가 (혹시 시트에 없는 경우 대비)

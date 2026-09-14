@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   BarChart,
@@ -18,14 +18,6 @@ import {
 
 type Period = 'month' | '3months';
 
-interface RegionRow {
-  name: string;
-  서울: number;
-  경기도: number;
-  지방: number;
-  기타: number;
-}
-
 interface DashboardData {
   totalEducation: number;
   externalParticipatedCount: number;
@@ -39,8 +31,62 @@ interface DashboardData {
   participationThreeSplit: { externalTop5: Array<{ name: string; count: number }>; internalTop3: Array<{ name: string; count: number }> };
   regionThisMonth: Array<{ name: string; count: number; fill: string }>;
   regionThreeMonths: Array<{ name: string; count: number; fill: string }>;
-  instructorRegionThisMonth: RegionRow[];
-  instructorRegionThreeMonths: RegionRow[];
+}
+
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+function formatScheduleDate(iso: string): string {
+  if (!iso) return '0월 0일(0요일)';
+  const d = new Date(iso + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${d.getMonth() + 1}월 ${d.getDate()}일(${WEEKDAYS[d.getDay()]}요일)`;
+}
+
+function formatReplyDate(iso: string): string {
+  if (!iso) return '0/00(0요일)';
+  const d = new Date(iso + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${d.getMonth() + 1}/${d.getDate()}(${WEEKDAYS[d.getDay()]}요일)`;
+}
+
+function buildRecruitMessage(v: {
+  instructorName: string;
+  company: string;
+  courseName: string;
+  date: string;
+  location: string;
+  time: string;
+  replyDate: string;
+  managerName: string;
+}): string {
+  const instructor = v.instructorName || 'OO';
+  const company = v.company || 'OO';
+  const course = v.courseName || 'OOO';
+  const schedule = formatScheduleDate(v.date);
+  const location = v.location || 'OOOO';
+  const time = v.time || '00:00~00:00 / 총 0시간';
+  const reply = formatReplyDate(v.replyDate);
+  const manager = v.managerName || '000';
+
+  return `안녕하세요, ${instructor} 강사님.
+포텐스닷 ${manager} 매니저입니다.
+
+다름이 아니라, '${company}' 기업을 대상으로 하는 ${course} 교육 섭외 건으로 연락을 드렸습니다.
+기업 측에서 희망하는 일자가 확정되어있어, 강사님께 아래 일정을 제안드리고자 합니다.
+
+[교육 개요]
+1. 과정명: ${course}
+2. 교육 일정: ${schedule}
+3. 교육 장소: ${location}
+4. 교육 시간: ${time}
+
+현재 기업 측에서 멘토님의 가능 일정을 기다리고 있습니다.
+바쁘시겠지만, 원활한 일정 확정을 위해 ${reply}까지 회신 주시면 감사하겠습니다.
+
+그 외 궁금하신 내용은 언제든 편하게 말씀해주세요.
+
+감사합니다.
+`;
 }
 
 export default function EMDashboardPage() {
@@ -50,8 +96,21 @@ export default function EMDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<Period>('month');
+  const [copied, setCopied] = useState(false);
+  const [instructors, setInstructors] = useState<Array<{ name: string; email: string }>>([]);
+  const [managers, setManagers] = useState<Array<{ name: string; email: string }>>([]);
 
-  // 사이드바에서 대시보드 클릭 시 항상 이번 달로
+  const [msg, setMsg] = useState({
+    instructorName: '',
+    managerName: '',
+    company: '',
+    courseName: '',
+    date: '',
+    location: '',
+    time: '',
+    replyDate: '',
+  });
+
   useEffect(() => {
     if (pathname === '/em') setPeriod('month');
   }, [pathname]);
@@ -71,6 +130,39 @@ export default function EMDashboardPage() {
   }, []);
 
   useEffect(() => {
+    Promise.all([
+      fetch('/api/em/instructors-info').then((res) => (res.ok ? res.json() : null)),
+      fetch('/api/em/managers').then((res) => (res.ok ? res.json() : null)),
+    ])
+      .then(([instData, mgrData]) => {
+        if (instData?.instructors) {
+          setInstructors(
+            instData.instructors
+              .filter(
+                (i: { name?: string; email?: string; affiliation?: string }) =>
+                  i.name &&
+                  i.email &&
+                  (i.affiliation || '').trim() !== '포텐스닷'
+              )
+              .map((i: { name: string; email: string }) => ({
+                name: i.name,
+                email: i.email,
+              }))
+          );
+        }
+        if (mgrData?.managers) setManagers(mgrData.managers);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!user?.user?.email || managers.length === 0 || msg.managerName) return;
+    const email = user.user.email.trim().toLowerCase();
+    const matched = managers.find((m) => m.email.trim().toLowerCase() === email);
+    if (matched) setMsg((prev) => ({ ...prev, managerName: matched.name }));
+  }, [user, managers, msg.managerName]);
+
+  useEffect(() => {
     if (!user) return;
     setError(null);
     fetch('/api/em/dashboard')
@@ -85,12 +177,28 @@ export default function EMDashboardPage() {
       });
   }, [user]);
 
+  const previewText = useMemo(() => buildRecruitMessage(msg), [msg]);
+
+  const copyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(previewText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      alert('복사에 실패했습니다. 미리보기 텍스트를 직접 선택해 복사해 주세요.');
+    }
+  };
+
+  const setField = (key: keyof typeof msg, value: string) => {
+    setMsg((prev) => ({ ...prev, [key]: value }));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-gray-600 rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-500">로딩 중...</p>
+          <div className="w-8 h-8 border-2 border-potens-line border-t-potens-navy rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-potens-body">로딩 중...</p>
         </div>
       </div>
     );
@@ -98,8 +206,8 @@ export default function EMDashboardPage() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-sm text-gray-600">로그인이 필요합니다.</p>
+      <div className="flex items-center justify-center min-h-[60vh] bg-potens-navy">
+        <p className="text-sm text-white">로그인이 필요합니다.</p>
       </div>
     );
   }
@@ -117,102 +225,67 @@ export default function EMDashboardPage() {
   const instructorCountExternal = data?.instructorCountExternal ?? 0;
 
   const participationSplit = period === 'month' ? data?.participationMonthSplit : data?.participationThreeSplit;
-  const regionData = period === 'month' ? data?.regionThisMonth : data?.regionThreeMonths;
-  const instructorRegion = period === 'month' ? data?.instructorRegionThisMonth : data?.instructorRegionThreeMonths;
   const periodLabel = period === 'month' ? '이번 달' : '최근 3개월';
 
   const donutData = [
-    { name: '외부 강사 참여', value: externalForPeriod, color: '#3b82f6' },
-    { name: '미참여', value: totalForPeriod - externalForPeriod, color: '#e5e7eb' },
+    { name: '외부 강사 참여', value: externalForPeriod, color: '#15237A' },
+    { name: '미참여', value: totalForPeriod - externalForPeriod, color: '#D9D9D9' },
   ].filter((d) => d.value > 0);
 
-  const maxRegion = (row: RegionRow) =>
-    Math.max(row.서울, row.경기도, row.지방, row.기타, 1);
+  const inputClass = 'potens-input text-xs py-1.5';
+
+  const statCards = [
+    { label: '전체 교육 일정', value: totalEducation, suffix: '건', hint: '2026 기업교육' },
+    { label: '외부 강사 참여 교육', value: externalCount, suffix: '건', hint: `전체의 ${externalRatio}%` },
+    { label: '대기 줄 배정', value: 0, suffix: '건', hint: '' },
+    { label: '외부 강사 수', value: instructorCountExternal, suffix: '명', hint: '' },
+  ];
 
   return (
-    <div className="space-y-4 pb-6 text-[13px]">
+    <div className="space-y-6 pb-8 text-[13px]">
       <div>
-        <h1 className="text-base font-bold text-gray-900">2026 강사 대시보드</h1>
-        <p className="text-xs text-gray-500 mt-0.5">
-          교육 운영 통계를 한눈에 확인하세요.
-        </p>
+        <h1 className="potens-title text-xl">
+          2026 강사 대시보드<span className="text-potens-orange">.</span>
+        </h1>
+        <p className="potens-body text-sm mt-1">교육 운영 통계를 한눈에 확인하세요.</p>
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+        <div className="border border-potens-line px-3 py-2 text-xs text-potens-body bg-white">
           {error}
         </div>
       )}
 
       {data && (
         <>
-          {/* 상단 4개 카드 - 컴팩트 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-2.5 flex items-start gap-2">
-              <div className="w-7 h-7 rounded-md bg-blue-100 flex items-center justify-center shrink-0">
-                <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-0 border border-potens-line divide-x divide-y md:divide-y-0 divide-potens-line">
+            {statCards.map((card) => (
+              <div key={card.label} className="bg-white p-4">
+                <p className="text-[11px] font-medium text-potens-navy">{card.label}</p>
+                <p className="mt-1.5 text-xl tabular-nums">
+                  <span className="potens-accent-num">{card.value.toLocaleString()}</span>
+                  <span className="text-potens-body text-sm font-normal ml-0.5">{card.suffix}</span>
+                </p>
+                {card.hint ? <p className="text-[11px] text-potens-body mt-1">{card.hint}</p> : null}
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium text-gray-500">전체 교육 일정</p>
-                <p className="text-base font-bold text-gray-900">{totalEducation.toLocaleString()}건</p>
-                <p className="text-[10px] text-gray-500">(2026 기업교육)</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-2.5 flex items-start gap-2">
-              <div className="w-7 h-7 rounded-md bg-emerald-100 flex items-center justify-center shrink-0">
-                <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium text-gray-500">외부 강사 참여 교육</p>
-                <p className="text-base font-bold text-gray-900">{externalCount.toLocaleString()}건</p>
-                <p className="text-[10px] text-gray-500">전체의 {externalRatio}%</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-2.5 flex items-start gap-2">
-              <div className="w-7 h-7 rounded-md bg-amber-100 flex items-center justify-center shrink-0">
-                <svg className="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-gray-500">대기 줄 배정</p>
-                <p className="text-base font-bold text-gray-900">0건</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-2.5 flex items-start gap-2">
-              <div className="w-7 h-7 rounded-md bg-violet-100 flex items-center justify-center shrink-0">
-                <svg className="w-3.5 h-3.5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-gray-500">외부 강사 수</p>
-                <p className="text-base font-bold text-gray-900">{instructorCountExternal}명</p>
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* 교육 참석 현황 */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-900">교육 참석 현황</h2>
-              <p className="text-[11px] text-gray-500 mt-0.5">
-                {periodLabel} 참여 횟수 · 지역별 상세는 아래 표에서 확인
-              </p>
-              <div className="flex items-center gap-1.5 mt-2">
+          <div className="potens-panel overflow-hidden">
+            <div className="px-5 py-4 border-b border-potens-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h2 className="potens-subtitle text-sm">교육 참석 현황</h2>
+                <p className="text-[11px] text-potens-body mt-0.5">{periodLabel} 참여 횟수</p>
+              </div>
+              <div className="flex items-center border border-potens-line">
                 {(['month', '3months'] as const).map((p) => (
                   <button
                     key={p}
                     onClick={() => setPeriod(p)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                      period === p ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    className={`px-3.5 py-1.5 text-xs font-medium transition-colors duration-soft ${
+                      period === p
+                        ? 'bg-potens-navy text-white'
+                        : 'bg-white text-potens-body hover:text-potens-navy'
                     }`}
                   >
                     {p === 'month' ? '이번 달' : '3개월'}
@@ -220,166 +293,134 @@ export default function EMDashboardPage() {
                 ))}
               </div>
             </div>
-            <div className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="p-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div>
-                <h3 className="text-xs font-semibold text-gray-700 mb-2">외부 강사 참여 Top 5</h3>
+                <h3 className="text-xs font-medium text-potens-navy mb-3">외부 강사 참여 Top 5</h3>
                 {!(participationSplit?.externalTop5?.length) ? (
-                  <p className="text-xs text-gray-500 py-4">데이터 없음</p>
+                  <p className="text-xs text-potens-body py-4">데이터 없음</p>
                 ) : (
-                  <div className="h-40 max-w-[280px] [&_.recharts-cartesian-axis-tick-value]:!text-[10px]">
+                  <div className="h-40 max-w-[280px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={participationSplit.externalTop5}
-                        layout="vertical"
-                        margin={{ top: 2, right: 8, left: 4, bottom: 2 }}
-                      >
-                        <CartesianGrid strokeDasharray="2 2" stroke="#f0f0f0" />
-                        <XAxis type="number" tick={{ fontSize: 9 }} />
-                        <YAxis type="category" dataKey="name" width={52} tick={{ fontSize: 10 }} />
-                        <Tooltip contentStyle={{ fontSize: '11px' }} formatter={(value: number) => [`${value}회`, '참여']} />
-                        <Bar dataKey="count" fill="#3b82f6" radius={[0, 3, 3, 0]} name="참여 횟수" barSize={14} />
+                      <BarChart data={participationSplit.externalTop5} layout="vertical" margin={{ top: 2, right: 8, left: 4, bottom: 2 }}>
+                        <CartesianGrid strokeDasharray="0" stroke="#D9D9D9" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 9, fill: '#5C5C5C' }} axisLine={{ stroke: '#D9D9D9' }} />
+                        <YAxis type="category" dataKey="name" width={52} tick={{ fontSize: 10, fill: '#5C5C5C' }} axisLine={{ stroke: '#D9D9D9' }} />
+                        <Tooltip contentStyle={{ fontSize: '11px', border: '1px solid #D9D9D9', borderRadius: 0 }} formatter={(value: number) => [`${value}회`, '참여']} />
+                        <Bar dataKey="count" fill="#15237A" name="참여 횟수" barSize={12} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 )}
               </div>
               <div>
-                <h3 className="text-xs font-semibold text-gray-700 mb-2">내부 강사 참여 Top 3</h3>
+                <h3 className="text-xs font-medium text-potens-navy mb-3">내부 강사 참여 Top 3</h3>
                 {!(participationSplit?.internalTop3?.length) ? (
-                  <p className="text-xs text-gray-500 py-4">데이터 없음</p>
+                  <p className="text-xs text-potens-body py-4">데이터 없음</p>
                 ) : (
-                  <div className="h-40 max-w-[280px] [&_.recharts-cartesian-axis-tick-value]:!text-[10px]">
+                  <div className="h-40 max-w-[280px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={participationSplit.internalTop3}
-                        layout="vertical"
-                        margin={{ top: 2, right: 8, left: 4, bottom: 2 }}
-                      >
-                        <CartesianGrid strokeDasharray="2 2" stroke="#f0f0f0" />
-                        <XAxis type="number" tick={{ fontSize: 9 }} />
-                        <YAxis type="category" dataKey="name" width={52} tick={{ fontSize: 10 }} />
-                        <Tooltip contentStyle={{ fontSize: '11px' }} formatter={(value: number) => [`${value}회`, '참여']} />
-                        <Bar dataKey="count" fill="#10b981" radius={[0, 3, 3, 0]} name="참여 횟수" barSize={14} />
+                      <BarChart data={participationSplit.internalTop3} layout="vertical" margin={{ top: 2, right: 8, left: 4, bottom: 2 }}>
+                        <CartesianGrid strokeDasharray="0" stroke="#D9D9D9" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 9, fill: '#5C5C5C' }} axisLine={{ stroke: '#D9D9D9' }} />
+                        <YAxis type="category" dataKey="name" width={52} tick={{ fontSize: 10, fill: '#5C5C5C' }} axisLine={{ stroke: '#D9D9D9' }} />
+                        <Tooltip contentStyle={{ fontSize: '11px', border: '1px solid #D9D9D9', borderRadius: 0 }} formatter={(value: number) => [`${value}회`, '참여']} />
+                        <Bar dataKey="count" fill="#F26300" name="참여 횟수" barSize={12} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 )}
               </div>
               <div>
-                <h3 className="text-xs font-semibold text-gray-700 mb-2">{periodLabel} 외부 강사 참여 비율</h3>
+                <h3 className="text-xs font-medium text-potens-navy mb-3">{periodLabel} 외부 강사 참여 비율</h3>
                 {donutData.length === 0 ? (
-                  <p className="text-xs text-gray-500 py-4">데이터 없음</p>
+                  <p className="text-xs text-potens-body py-4">데이터 없음</p>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <div className="w-44 h-44 shrink-0 relative [&_.recharts-legend-item-text]:!text-[10px]">
+                    <div className="w-44 h-44 shrink-0 relative">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie
-                            data={donutData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={35}
-                            outerRadius={53}
-                            paddingAngle={1}
-                            dataKey="value"
-                            nameKey="name"
-                          >
+                          <Pie data={donutData} cx="50%" cy="50%" innerRadius={35} outerRadius={53} paddingAngle={1} dataKey="value" nameKey="name">
                             {donutData.map((entry, index) => (
                               <Cell key={index} fill={entry.color} />
                             ))}
                           </Pie>
-                          <Tooltip contentStyle={{ fontSize: '11px' }} formatter={(v: number) => [`${v}건`, '']} />
+                          <Tooltip contentStyle={{ fontSize: '11px', border: '1px solid #D9D9D9', borderRadius: 0 }} formatter={(v: number) => [`${v}건`, '']} />
                           <Legend wrapperStyle={{ fontSize: '10px' }} iconSize={8} />
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-xs font-bold text-gray-900">
-                          {externalForPeriod}/{totalForPeriod}건
+                        <span className="text-xs font-bold text-potens-black">
+                          <span className="text-potens-orange">{externalForPeriod}</span>
+                          <span className="text-potens-body">/{totalForPeriod}건</span>
                         </span>
-                        <span className="text-[10px] font-medium text-gray-600">{ratioForPeriod}% 참여</span>
+                        <span className="text-[10px] font-medium text-potens-navy">{ratioForPeriod}% 참여</span>
                       </div>
                     </div>
-                    <p className="text-[10px] text-gray-500">
-                      전체 {totalForPeriod}건 중 외부 강사 참여 {externalForPeriod}건
+                    <p className="text-[11px] text-potens-body leading-relaxed">
+                      전체 {totalForPeriod}건 중<br />외부 강사 참여 {externalForPeriod}건
                     </p>
                   </div>
                 )}
               </div>
             </div>
           </div>
-
-          {/* 강사별 지역 참석 상세 (외부 강사만) */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-900">강사별 지역 참석 상세</h2>
-              <p className="text-[11px] text-gray-500 mt-0.5">{periodLabel} · 외부 강사만</p>
-            </div>
-            <div className="p-4 overflow-x-auto">
-              {!instructorRegion?.length ? (
-                <p className="text-xs text-gray-500 py-4">데이터 없음</p>
-              ) : (
-                <table className="min-w-full text-xs">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-600">이름</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-600">서울</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-600">경기도</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-600">지방</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-600">기타</th>
-                      <th className="px-3 py-2 text-right font-semibold text-gray-600">합계</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {instructorRegion.slice(0, 20).map((row) => {
-                      const sum = row.서울 + row.경기도 + row.지방 + row.기타;
-                      const max = maxRegion(row);
-                      const bar = (v: number) => (max > 0 ? Math.max(2, (v / max) * 40) : 0);
-                      return (
-                        <tr key={row.name} className="hover:bg-gray-50/50">
-                          <td className="px-3 py-2 font-medium text-gray-900">{row.name}</td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-10 h-3 bg-gray-100 rounded overflow-hidden" title={String(row.서울)}>
-                                <div className="h-full bg-blue-500 rounded" style={{ width: bar(row.서울) }} />
-                              </div>
-                              <span className="text-gray-700">{row.서울}회</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-10 h-3 bg-gray-100 rounded overflow-hidden" title={String(row.경기도)}>
-                                <div className="h-full bg-violet-500 rounded" style={{ width: bar(row.경기도) }} />
-                              </div>
-                              <span className="text-gray-700">{row.경기도}회</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-10 h-3 bg-gray-100 rounded overflow-hidden" title={String(row.지방)}>
-                                <div className="h-full bg-amber-500 rounded" style={{ width: bar(row.지방) }} />
-                              </div>
-                              <span className="text-gray-700">{row.지방}회</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-10 h-3 bg-gray-100 rounded overflow-hidden" title={String(row.기타)}>
-                                <div className="h-full bg-gray-400 rounded" style={{ width: bar(row.기타) }} />
-                              </div>
-                              <span className="text-gray-700">{row.기타}회</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-2 text-right font-medium text-gray-900">{sum}회</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
         </>
       )}
+
+      <div className="potens-panel overflow-hidden">
+        <div className="px-5 py-4 border-b border-potens-line flex items-center justify-between gap-2">
+          <div>
+            <h2 className="potens-subtitle text-sm">섭외 문자 작성</h2>
+            <p className="text-[11px] text-potens-body mt-0.5">왼쪽 입력 → 오른쪽 미리보기 · 복사해서 바로 사용</p>
+          </div>
+          <button type="button" onClick={copyMessage} className="potens-btn-primary text-xs py-1.5 px-3 shrink-0">
+            {copied ? '복사됨' : '문자 복사'}
+          </button>
+        </div>
+        <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <label className="block">
+              <span className="block text-[11px] font-medium text-potens-navy mb-1">강사 성함</span>
+              <select value={msg.instructorName} onChange={(e) => setField('instructorName', e.target.value)} className={inputClass}>
+                <option value="">선택하세요</option>
+                {instructors.map((inst) => (
+                  <option key={`${inst.name}-${inst.email}`} value={inst.name}>{inst.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="block text-[11px] font-medium text-potens-navy mb-1">매니저</span>
+              <select value={msg.managerName} onChange={(e) => setField('managerName', e.target.value)} className={inputClass}>
+                <option value="">선택하세요</option>
+                {managers.map((m) => (
+                  <option key={`${m.name}-${m.email}`} value={m.name}>{m.name}</option>
+                ))}
+              </select>
+            </label>
+            {(
+              [
+                ['company', '기업명', 'text', '예: 코웨이'],
+                ['courseName', '과정명', 'text', '예: Apps Script 핸즈온'],
+                ['date', '일자', 'date', ''],
+                ['location', '교육장소', 'text', '예: 코웨이 본사 (서울시 구로구)'],
+                ['time', '교육시간', 'text', '예: 14:00~17:00 / 총 3시간'],
+                ['replyDate', '답변회신 일자', 'date', ''],
+              ] as const
+            ).map(([key, label, type, placeholder]) => (
+              <label key={key} className="block">
+                <span className="block text-[11px] font-medium text-potens-navy mb-1">{label}</span>
+                <input type={type} value={msg[key]} onChange={(e) => setField(key, e.target.value)} placeholder={placeholder || undefined} className={inputClass} />
+              </label>
+            ))}
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-potens-navy mb-1">미리보기</p>
+            <pre className="whitespace-pre-wrap text-xs text-potens-body bg-white border border-potens-line p-4 min-h-[320px] max-h-[520px] overflow-y-auto font-sans leading-relaxed">
+              {previewText}
+            </pre>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
