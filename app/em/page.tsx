@@ -256,7 +256,14 @@ export default function EMDashboardPage() {
         </div>
       )}
 
-      {data && (
+      {/* 대시보드 영역: 데이터 로딩 중에도 자리를 잡아 템플릿보다 먼저 보이게 */}
+      {!data ? (
+        <div className="potens-panel px-5 py-16 flex flex-col items-center justify-center gap-3 min-h-[280px]">
+          <div className="w-8 h-8 border-2 border-potens-line border-t-potens-navy rounded-full animate-spin" />
+          <p className="text-sm font-medium text-potens-navy">대시보드 데이터 연동 중</p>
+          <p className="text-xs text-potens-body">잠시만 기다려주세요...</p>
+        </div>
+      ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-0 border border-potens-line divide-x divide-y md:divide-y-0 divide-potens-line">
             {statCards.map((card) => (
