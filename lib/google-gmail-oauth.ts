@@ -172,7 +172,8 @@ export async function sendEmailWithOAuth(
   body: string,
   from: string,
   accessToken: string,
-  refreshToken?: string
+  refreshToken?: string,
+  options?: { cc?: string; replyTo?: string }
 ): Promise<void> {
   // Gmail 클라이언트 생성 (토큰 갱신 포함)
   const gmail = await getGmailClientWithOAuth(accessToken, refreshToken);
@@ -206,12 +207,24 @@ export async function sendEmailWithOAuth(
   const messageLines = [
     `To: ${to}`,
     `From: ${verifiedFrom}`, // 인증된 계정과 일치해야 함
-    `Subject: ${subject}`,
+  ];
+  if (options?.cc) {
+    messageLines.push(`Cc: ${options.cc}`);
+  }
+  if (options?.replyTo) {
+    messageLines.push(`Reply-To: ${options.replyTo}`);
+  }
+  // 한글 제목 MIME 인코딩 (RFC 2047)
+  const encodedSubject = /[^\x00-\x7F]/.test(subject)
+    ? `=?UTF-8?B?${Buffer.from(subject, 'utf8').toString('base64')}?=`
+    : subject;
+  messageLines.push(
+    `Subject: ${encodedSubject}`,
     'Content-Type: text/html; charset=utf-8',
     'MIME-Version: 1.0',
     '', // 빈 줄 (헤더와 본문 구분)
     body,
-  ];
+  );
 
   const message = messageLines.join('\r\n');
 

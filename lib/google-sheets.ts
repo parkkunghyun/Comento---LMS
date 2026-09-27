@@ -35,6 +35,15 @@ const INSTRUCTOR_STATUS_SHEET_NAME = () =>
 /** F열 값이 아래면 강사 현황 목록에서 제외 */
 const INSTRUCTOR_STATUS_EXCLUDED = new Set(['중단', '대기중', '양성단계']);
 
+/** 테스트용 강사 (로컬/스테이징 확인용 — 배포 전 제거) */
+const TEST_INSTRUCTORS: Array<{ name: string; email: string; emailCell: string }> = [
+  {
+    name: '박경현2',
+    email: 'rudgus4620@gmail.com',
+    emailCell: 'rudgus4620@gmail.com',
+  },
+];
+
 /** 강사 개선점 시트: 1ygeuJ... 내 시트 (gid=1929592205) - A=교육일, B=기업명, C=작성일, D=개선될 점, E=멘토 */
 const IMPROVEMENT_SHEET_SPREADSHEET_ID = () => process.env.GOOGLE_INSTRUCTOR_SPREADSHEET_ID || process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID || '1ygeuJ9dIVvbreU2CXTNDXonnew19EjWsJq7FJLMCLW0';
 const IMPROVEMENT_SHEET_GID = 1929592205;
@@ -978,15 +987,15 @@ export async function getCoachNamesByEmails(emails: string[]): Promise<{ [email:
 }
 
 /**
- * 매니저 목록을 조회합니다 (1MKm00... / EM현황: A=이메일, B=이름).
+ * 매니저(EM) 목록을 조회합니다.
+ * 1ygeuJ... / EM로그인: A=이메일, B=이름
  */
 export async function getAllManagers(): Promise<Array<{ name: string; email: string }>> {
   const sheets = getGoogleSheetsClient();
   const spreadsheetId =
-    process.env.GOOGLE_EM_STATUS_SPREADSHEET_ID ||
-    process.env.GOOGLE_INSTRUCTOR_STATUS_SPREADSHEET_ID ||
-    EM_INSTRUCTOR_STATUS_SPREADSHEET_ID_FULL;
-  const sheetName = process.env.GOOGLE_EM_STATUS_SHEET_NAME || 'EM현황';
+    process.env.GOOGLE_RECRUITMENT_LOG_SPREADSHEET_ID ||
+    INSTRUCTOR_LIST_SPREADSHEET_ID();
+  const sheetName = 'EM로그인';
 
   try {
     const response = await sheets.spreadsheets.values.get({
@@ -1004,7 +1013,8 @@ export async function getAllManagers(): Promise<Array<{ name: string; email: str
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i] || [];
-      const managerEmail = String(row[0] || '').trim();
+      const emails = parseEmailCell(String(row[0] || ''));
+      const managerEmail = emails[0] || String(row[0] || '').trim();
       const managerName = normalizeName(String(row[1] || ''));
 
       if (managerName && managerEmail.includes('@') && !seen.has(managerName)) {
@@ -1018,7 +1028,94 @@ export async function getAllManagers(): Promise<Array<{ name: string; email: str
 
     return managers.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
-    console.error('Error fetching managers from EM현황:', error);
+    console.error('Error fetching managers from EM로그인:', error);
+    throw error;
+  }
+}
+
+/**
+ * 강사정보 시트에서 이름→이메일 셀 조회 (A=이메일, B=이름).
+ * 복수 이메일은 원본 셀 문자열로 반환합니다.
+ */
+export async function getInstructorEmailCellByName(name: string): Promise<string | null> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = INSTRUCTOR_LIST_SPREADSHEET_ID();
+  const sheetName = INSTRUCTOR_LIST_SHEET_NAME();
+  const target = normalizeName(name);
+  if (!target) return null;
+
+  const testHit = TEST_INSTRUCTORS.find((t) => normalizeName(t.name) === target);
+  if (testHit) return testHit.emailCell;
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:B`,
+    });
+    const rows = response.data.values;
+    if (!rows || rows.length < 2) return null;
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      const emailCell = String(row[0] || '').trim();
+      const instructorName = normalizeName(String(row[1] || ''));
+      if (instructorName === target && parseEmailCell(emailCell).length > 0) {
+        return emailCell;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('getInstructorEmailCellByName error:', error);
+    return null;
+  }
+}
+
+/**
+ * 강사정보 시트 전체 목록 (A=이메일, B=이름). 메일 섭외용.
+ */
+export async function getInstructorsFromInfoSheet(): Promise<
+  Array<{ name: string; email: string; emailCell: string }>
+> {
+  const sheets = getGoogleSheetsClient();
+  const spreadsheetId = INSTRUCTOR_LIST_SPREADSHEET_ID();
+  const sheetName = INSTRUCTOR_LIST_SHEET_NAME();
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:B`,
+    });
+    const rows = response.data.values;
+    if (!rows || rows.length < 2) return [];
+
+    const list: Array<{ name: string; email: string; emailCell: string }> = [];
+    const seen = new Set<string>();
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      const emailCell = String(row[0] || '').trim();
+      const instructorName = normalizeName(String(row[1] || ''));
+      const emails = parseEmailCell(emailCell);
+      if (!instructorName || emails.length === 0 || seen.has(instructorName)) continue;
+      seen.add(instructorName);
+      list.push({
+        name: instructorName,
+        email: emails[0],
+        emailCell,
+      });
+    }
+
+    return list
+      .concat(
+        TEST_INSTRUCTORS.filter((t) => !seen.has(normalizeName(t.name))).map((t) => ({
+          name: t.name,
+          email: t.email,
+          emailCell: t.emailCell,
+        }))
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    console.error('getInstructorsFromInfoSheet error:', error);
     throw error;
   }
 }
@@ -1426,6 +1523,21 @@ export async function getAllInstructorInfo(excludeInactive: boolean = true): Pro
         email: (row[7] || '').trim(), // H열: 이메일
         fee: (row[8] || '').trim(), // I열: 강사료_표준교육
         notes: (row[12] || '').trim(), // M열: 비고
+      });
+    }
+
+    for (const t of TEST_INSTRUCTORS) {
+      const n = normalizeName(t.name);
+      if (!n || seenNames.has(n)) continue;
+      seenNames.add(n);
+      instructors.push({
+        rowIndex: -1,
+        name: t.name,
+        affiliation: '테스트',
+        mobile: '',
+        email: t.email,
+        fee: '',
+        notes: '테스트용',
       });
     }
 

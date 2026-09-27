@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { getAllInstructorsWithEmail } from '@/lib/google-sheets';
+import {
+  getAllInstructorsWithEmail,
+  getInstructorsFromInfoSheet,
+} from '@/lib/google-sheets';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +14,17 @@ export async function GET(request: NextRequest) {
         { error: '인증되지 않았거나 권한이 없습니다.' },
         { status: 401 }
       );
+    }
+
+    const from = request.nextUrl.searchParams.get('from');
+
+    // 강사정보 시트 (메일 섭외용: A=이메일, B=이름)
+    if (from === 'info') {
+      const instructors = await getInstructorsFromInfoSheet();
+      return NextResponse.json({
+        success: true,
+        instructors,
+      });
     }
 
     // 기업교육_외부강사 시트 기준 (F열: 중단/대기중/양성단계 제외)
