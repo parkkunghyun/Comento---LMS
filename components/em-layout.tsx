@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import EMScheduleChat from '@/components/em-schedule-chat';
 
 interface User {
   role: string;
@@ -184,6 +185,8 @@ export default function EMLayout({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 p-5 md:p-8 overflow-auto bg-white">{children}</main>
       </div>
+
+      <EMScheduleChat />
     </div>
   );
 }
